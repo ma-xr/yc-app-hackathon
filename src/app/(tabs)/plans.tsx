@@ -6,6 +6,7 @@ import { api } from '../../../convex/_generated/api';
 import { dayDiff, firstName, fullDate, startOfDay, weekday } from '@/components/format';
 import { ConversationCard, EntryCard } from '@/components/conversation-card';
 import { Icon } from '@/components/icon';
+import { Takeaways, useFollowupsByItem } from '@/components/takeaway';
 import { Button, EmptyCard, H1, Screen, type Tone } from '@/components/ui';
 import { useNow } from '@/data/hooks';
 import { addDays, usePlansWeek, weekStartOf, type PlansWeek } from '@/data/plans';
@@ -34,6 +35,7 @@ export default function Plans() {
   const [picked, setPicked] = useState<number | null>(null);
   const weekStart = addDays(weekStartOf(now), offset * 7);
   const data = usePlansWeek(weekStart);
+  const followups = useFollowupsByItem(now);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const hasConversations = (d: number) => !!data?.conversations.some((c) => sameDay(c.startedAt, d));
@@ -152,7 +154,10 @@ export default function Plans() {
       ) : (
         <View style={{ gap: 12 }}>
           {dayConversations.map((c) => (
-            <ConversationCard key={c._id} conversation={c} />
+            <View key={c._id} style={{ gap: 8 }}>
+              <ConversationCard conversation={{ ...c, items: [] }} />
+              <Takeaways items={data.takeaways.filter((i) => i.conversationId === c._id)} followups={followups} />
+            </View>
           ))}
           {dayItems.map((i) => (
             <PlanCard key={i._id} item={i} />

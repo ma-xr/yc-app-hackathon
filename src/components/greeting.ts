@@ -4,7 +4,7 @@ import type { Conversation, Person } from '@/data/hooks';
 const MEALS = ['coffee', 'lunch', 'dinner', 'breakfast', 'brunch', 'drinks', 'class'];
 
 export function displayName(username: string | null) {
-  const letters = username?.match(/^[a-zA-Z]+/)?.[0];
+  const letters = username?.match(/^[a-zA-Z]+/)?.[0]?.replace(/(.{2,})demo$/i, '$1');
   return letters ? letters.charAt(0).toUpperCase() + letters.slice(1).toLowerCase() : null;
 }
 

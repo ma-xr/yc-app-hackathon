@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** OpenAI gpt-4o-transcribe-diarize (speech-to-text with speakers), gpt-5-mini (note extraction, follow-up drafts, jesse.ask answers), gpt-4o-mini-transcribe (voice questions), gpt-4o-mini-tts (Jesse's voice); Supermemory API for optional long-term recall; the Keiki iMessage agent runs google/gemini-3.8-flash (configured in Keiki)
 - **Started:** 2026-11-15T19:16:45Z
-- **Last updated:** 2026-11-15T23:12:00Z
+- **Last updated:** 2026-11-15T23:25:39Z
 
 ## Log
 
@@ -304,3 +304,20 @@ text_to_jesse on the live "iMessage with Jesse" connection), so a text like "had
 coffee with Dev, he's moving to Austin" turns into a fact, plans and follow-ups.
 The text itself is never stored. Convex features: HTTP action, internal action
 (`convex/http.ts`, `convex/integrations/ingest.ts`).
+
+### 2026-11-15 - 029419a
+The Home greeting drops a trailing "demo" from the username, so the poomdemo
+account says "Hey Poom" (`src/components/greeting.ts`).
+
+### 2026-11-15 - aba09c7
+Plans now shows each conversation's takeaways right under it: promises, plans,
+small-but-urgent items and what others owe you, each with one inline action
+(Going / Not now on plans, Add to calendar, Done, and Send follow-up when a
+follow-up draft exists). A person's page is just their upcoming plans and the
+conversation history. The suggested texts, notes composer and open-items strip
+are gone from it (`src/app/(tabs)/plans.tsx`, `src/app/person/[id].tsx`,
+`src/components/takeaway.tsx`, `src/data/plans.ts`).
+
+### 2026-11-15 - 70b7e4e
+The Home gear that opens Connections now sits above the title, so taps reach it
+(`src/app/(tabs)/index.tsx`).
