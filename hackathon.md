@@ -350,3 +350,9 @@ and smiles when an answer or a new conversation arrives, and hops when tapped.
 Reduce Motion is respected and the orb's accessibility labels are kept
 (`src/components/orb.tsx`, `src/lib/voice.ts`, `src/app/(tabs)/index.tsx`,
 `src/app/reflect.tsx`, `assets/jesse/`).
+
+## Clay capybara assets (YCAP-9)
+
+- Swapped Jesse's capybara art to Poom's pick, "soft clay 3D". Idle, blink, talk and happy come from one base image; the expression poses were generated as edits of it and only their face regions were blended onto idle, so ears, body and framing match frame to frame.
+- Added a 96px `icon.png` that `OrbArt` uses for idle at 64px and below (tab icon, Reflect header). Animation code is unchanged.
+- Verified: tsc and expo lint clean; Home and Reflect rendered on Expo web.

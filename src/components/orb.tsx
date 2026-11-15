@@ -28,7 +28,8 @@ const POSES = {
 type Pose = keyof typeof POSES;
 
 export function OrbArt({ size, pose = 'idle' }: { size: number; id?: string; pose?: Pose }) {
-  return <Image source={POSES[pose]} style={{ width: size, height: size }} resizeMode="contain" />;
+  const source = size <= 64 && pose === 'idle' ? require('../../assets/jesse/icon.png') : POSES[pose];
+  return <Image source={source} style={{ width: size, height: size }} resizeMode="contain" />;
 }
 
 function Ripple({ progress, size }: { progress: SharedValue<number>; size: number }) {
