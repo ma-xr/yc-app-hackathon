@@ -152,13 +152,19 @@ export const memory = internalQuery({
 
 export const addReminder = internalMutation({
   args: { ownerId: v.id("users"), text: v.string(), person: v.optional(v.string()), dueAt: v.optional(v.number()) },
-  returns: v.object({ saved: v.string(), person: v.union(v.string(), v.null()) }),
+  returns: v.union(
+    v.object({ saved: v.string(), person: v.union(v.string(), v.null()), nudge: v.boolean(), note: v.optional(v.string()) }),
+    v.object({ error: v.literal("unknown_person"), knownPeople: v.array(v.string()) }),
+  ),
   handler: async (ctx, { ownerId, text, person, dueAt }) => {
     const needle = person?.trim().toLowerCase();
     const people = needle
       ? await ctx.db.query("people").withIndex("by_ownerId", (q) => q.eq("ownerId", ownerId)).take(200)
       : [];
     const match = needle ? people.find((p) => p.name.toLowerCase().includes(needle)) : undefined;
+    if (needle && match === undefined) {
+      return { error: "unknown_person" as const, knownPeople: people.slice(0, 15).map((p) => p.name) };
+    }
     const itemId = await ctx.db.insert("items", {
       ownerId,
       personId: match?._id,
@@ -169,8 +175,16 @@ export const addReminder = internalMutation({
       status: "open",
       editedByUser: true,
     });
+    if (match === undefined) {
+      return {
+        saved: text,
+        person: null,
+        nudge: false,
+        note: "Saved as a note. Jesse only sends a nudge for reminders about a specific person.",
+      };
+    }
     await ctx.scheduler.runAfter(0, internal.followups.planForItem, { itemId });
-    return { saved: text, person: match?.name ?? null };
+    return { saved: text, person: match.name, nudge: true };
   },
 });
 
@@ -192,6 +206,10 @@ export const handleForFollowup = internalQuery({
   handler: async (ctx, { followupId }) => {
     const followup = await ctx.db.get(followupId);
     if (followup === null) return null;
+    if (followup.itemId !== undefined) {
+      const item = await ctx.db.get(followup.itemId);
+      if (item === null || item.status !== "open") return null;
+    }
     const link = await ctx.db
       .query("keikiLinks")
       .withIndex("by_ownerId", (q) => q.eq("ownerId", followup.ownerId))
@@ -201,6 +219,8 @@ export const handleForFollowup = internalQuery({
     return { phone: link.phone, personName: person.name, reason: followup.reason, drafts: followup.drafts, status: followup.status };
   },
 });
+
+type FollowupTarget = { phone: string; personName: string; reason: string; drafts: string[]; status: string };
 
 async function sendNotice(phone: string, text: string): Promise<boolean> {
   const apiKey = env.KEIKI_API_KEY;
@@ -222,7 +242,7 @@ export const pushFollowup = internalAction({
   args: { followupId: v.id("followups") },
   returns: v.null(),
   handler: async (ctx, { followupId }) => {
-    const target = await ctx.runQuery(internal.keiki.handleForFollowup, { followupId });
+    const target: FollowupTarget | null = await ctx.runQuery(internal.keiki.handleForFollowup, { followupId });
     if (target === null || target.status !== "suggested") return null;
     const drafts = target.drafts.map((d, i) => `${i + 1}. ${d}`).join("\n");
     await sendNotice(
@@ -243,7 +263,7 @@ export const eveningDigest = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const links = await ctx.runQuery(internal.keiki.linkedHandles, {});
+    const links: { ownerId: Id<"users">; phone: string }[] = await ctx.runQuery(internal.keiki.linkedHandles, {});
     for (const { ownerId, phone } of links) {
       const due = await ctx.runQuery(internal.followups.suggestedFor, { ownerId, until: Date.now() + DAY / 2 });
       if (due.length === 0) continue;

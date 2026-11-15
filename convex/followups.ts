@@ -52,11 +52,24 @@ async function insertFollowup(
     drafts: [],
     status: due ? "suggested" : "scheduled",
   });
-  await ctx.scheduler.runAfter(0, internal.followups.generateDrafts, { followupId });
+  await ctx.scheduler.runAfter(0, internal.followups.generateDrafts, { followupId, pushWhenDone: due });
   if (!due) {
     await ctx.scheduler.runAt(fields.sendAt, internal.followups.activate, { followupId });
   }
   return followupId;
+}
+
+function isStale(existing: Doc<"followups">[], plans: Plan[], now: number): boolean {
+  const unsent = existing.filter((f) => f.status === "scheduled" || f.status === "suggested");
+  const handled = new Set(existing.filter((f) => f.status === "sent" || f.status === "dismissed").map((f) => f.reason));
+  const expected = plans.filter((p) => !handled.has(p.reason));
+  if (unsent.length !== expected.length) return true;
+  return expected.some((plan) => {
+    const match = unsent.find((f) => f.reason === plan.reason);
+    if (match === undefined) return true;
+    if (plan.sendAt <= now) return match.sendAt > now;
+    return Math.abs(match.sendAt - plan.sendAt) > MINUTE;
+  });
 }
 
 async function planItem(ctx: MutationCtx, item: Doc<"items">) {
@@ -98,6 +111,10 @@ export const activate = internalMutation({
     const followup = await ctx.db.get(followupId);
     if (followup === null || followup.status !== "scheduled") return null;
     if (followup.sendAt > Date.now() + MINUTE) return null;
+    if (followup.itemId !== undefined) {
+      const item = await ctx.db.get(followup.itemId);
+      if (item === null || item.status !== "open") return null;
+    }
     await ctx.db.patch(followupId, { status: "suggested" });
     await ctx.scheduler.runAfter(0, internal.keiki.pushFollowup, { followupId });
     return null;
@@ -115,13 +132,20 @@ export const sweep = internalMutation({
         .query("items")
         .withIndex("by_ownerId_and_status", (q) => q.eq("ownerId", user._id).eq("status", "open"))
         .take(200);
+      const names = new Map<Id<"people">, string>();
       for (const item of items) {
         if (item.dueAt === undefined && item.kind !== "you_owe") continue;
-        const planned = await ctx.db
+        if (item.personId === undefined) continue;
+        if (!names.has(item.personId)) names.set(item.personId, (await ctx.db.get(item.personId))?.name ?? "");
+        const personName = names.get(item.personId);
+        if (!personName) continue;
+        const existing = await ctx.db
           .query("followups")
           .withIndex("by_itemId", (q) => q.eq("itemId", item._id))
-          .first();
-        if (planned === null) await planItem(ctx, item);
+          .take(10);
+        if (existing.length === 0 || isStale(existing, plansForItem(item, personName, now), now)) {
+          await planItem(ctx, item);
+        }
       }
 
       const recent = await ctx.db
@@ -218,11 +242,21 @@ function fallbackDrafts(reason: string, personName: string, itemText?: string): 
   return [`Hey ${first}! It's been a while, how are you?`, `Thought of you today ${first}, want to catch up this week?`];
 }
 
+type DraftContext = {
+  reason: string;
+  personName: string;
+  archetype?: string;
+  facts: string[];
+  itemText?: string;
+  dueAt?: number;
+  voiceSamples: string[];
+};
+
 export const generateDrafts = internalAction({
-  args: { followupId: v.id("followups") },
+  args: { followupId: v.id("followups"), pushWhenDone: v.optional(v.boolean()) },
   returns: v.null(),
-  handler: async (ctx, { followupId }) => {
-    const context = await ctx.runQuery(internal.followups.draftContext, { followupId });
+  handler: async (ctx, { followupId, pushWhenDone }) => {
+    const context: DraftContext | null = await ctx.runQuery(internal.followups.draftContext, { followupId });
     if (context === null) return null;
     let drafts = fallbackDrafts(context.reason, context.personName, context.itemText);
     const apiKey = env.OPENAI_API_KEY;
@@ -234,22 +268,12 @@ export const generateDrafts = internalAction({
       }
     }
     await ctx.runMutation(internal.followups.saveDrafts, { followupId, drafts });
+    if (pushWhenDone) await ctx.runAction(internal.keiki.pushFollowup, { followupId });
     return null;
   },
 });
 
-async function draftWithOpenAI(
-  apiKey: string,
-  context: {
-    reason: string;
-    personName: string;
-    archetype?: string;
-    facts: string[];
-    itemText?: string;
-    dueAt?: number;
-    voiceSamples: string[];
-  },
-): Promise<string[]> {
+async function draftWithOpenAI(apiKey: string, context: DraftContext): Promise<string[]> {
   const voice =
     context.voiceSamples.length > 0
       ? `Texts this user actually sent before (match their voice, casing, punctuation and emoji use):\n${context.voiceSamples.map((s) => `- ${s}`).join("\n")}`
