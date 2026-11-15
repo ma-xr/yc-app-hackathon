@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type QueryCtx } from "./_generated/server";
+import { deleteItem } from "./items";
 import { requireOwned, requireUser } from "./lib/auth";
 
 async function withDetails(ctx: QueryCtx, conversation: Doc<"conversations">) {
@@ -91,7 +92,7 @@ export const remove = mutation({
       .withIndex("by_conversationId", (q) => q.eq("conversationId", conversationId))
       .take(100);
     for (const item of items) {
-      await ctx.db.delete("items", item._id);
+      await deleteItem(ctx, item._id);
     }
     await ctx.db.delete("conversations", conversationId);
     return null;

@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { requireOwned, requireUser } from "./lib/auth";
 import { itemKind, itemStatus } from "./schema";
 
@@ -76,12 +76,23 @@ export const update = mutation({
   },
 });
 
+export async function deleteItem(ctx: MutationCtx, itemId: Id<"items">) {
+  const followups = await ctx.db
+    .query("followups")
+    .withIndex("by_itemId", (q) => q.eq("itemId", itemId))
+    .take(50);
+  for (const followup of followups) {
+    await ctx.db.delete("followups", followup._id);
+  }
+  await ctx.db.delete("items", itemId);
+}
+
 export const remove = mutation({
   args: { itemId: v.id("items") },
   handler: async (ctx, { itemId }) => {
     const ownerId = await requireUser(ctx);
     await requireOwned(ctx, "items", itemId, ownerId);
-    await ctx.db.delete("items", itemId);
+    await deleteItem(ctx, itemId);
     return null;
   },
 });

@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
+import { deleteItem } from "./items";
 import { requireOwned, requireUser } from "./lib/auth";
 
 const MAX_FACT_WORDS = 12;
@@ -80,7 +81,14 @@ export const remove = mutation({
       .withIndex("by_personId", (q) => q.eq("personId", personId))
       .take(500);
     for (const item of items) {
-      await ctx.db.delete("items", item._id);
+      await deleteItem(ctx, item._id);
+    }
+    const followups = await ctx.db
+      .query("followups")
+      .withIndex("by_personId", (q) => q.eq("personId", personId))
+      .take(100);
+    for (const followup of followups) {
+      await ctx.db.delete("followups", followup._id);
     }
     await ctx.db.delete("people", personId);
     return null;
