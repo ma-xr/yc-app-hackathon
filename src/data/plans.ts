@@ -19,8 +19,12 @@ export function usePlansWeek(weekStart: number) {
   const open = useQuery(api.items.open, { kinds: ['plan', 'you_owe', 'they_owe', 'urgent'], limit: 300 });
   if (conversations === undefined || open === undefined) return undefined;
   const kept = conversations.filter((c) => c.status !== 'done' || c.gist.length || c.people.length || c.items.length);
-  const items = open.filter((i) => i.dueAt !== undefined && i.dueAt >= weekStart && i.dueAt < weekEnd);
-  return { conversations: kept, items };
+  const ids = new Set(kept.map((c) => c._id as string));
+  const takeaways = open.filter((i) => i.conversationId !== undefined && ids.has(i.conversationId));
+  const items = open.filter(
+    (i) => i.dueAt !== undefined && i.dueAt >= weekStart && i.dueAt < weekEnd && !takeaways.includes(i),
+  );
+  return { conversations: kept, items, takeaways };
 }
 
 export type PlansWeek = NonNullable<ReturnType<typeof usePlansWeek>>;
