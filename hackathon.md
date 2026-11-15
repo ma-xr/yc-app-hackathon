@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** OpenAI gpt-4o-transcribe-diarize (speech-to-text with speakers), gpt-5-mini (note extraction, follow-up drafts, jesse.ask answers), gpt-4o-mini-transcribe (voice questions), gpt-4o-mini-tts (Jesse's voice); Supermemory API for optional long-term recall; the Keiki iMessage agent runs google/gemini-3.8-flash (configured in Keiki)
 - **Started:** 2026-11-15T19:16:45Z
-- **Last updated:** 2026-11-15T23:25:39Z
+- **Last updated:** 2026-11-15T23:34:33Z
 
 ## Log
 
@@ -321,3 +321,32 @@ are gone from it (`src/app/(tabs)/plans.tsx`, `src/app/person/[id].tsx`,
 ### 2026-11-15 - 70b7e4e
 The Home gear that opens Connections now sits above the title, so taps reach it
 (`src/app/(tabs)/index.tsx`).
+
+### 2026-11-15 - a938170
+Two demo helpers on Connections. On the "iMessage with Jesse" row, Link my
+iMessage creates a link code and opens Messages to Jesse's number with the link
+text prefilled. A Load demo memories card asks for confirmation, then runs
+seed.demo and the Tim, Mom and deck scenarios, so a fresh account fills Plans,
+People and Ideas in one tap. Calls keiki.createLinkCode, seed.demo and
+scenarios.run (`src/app/connections.tsx`).
+
+### 2026-11-15 - 7d3c611
+Warm Apricot theme, which Poom picked from three previews: a blush background, a
+coral accent, a peach-to-rose orb, rounded Nunito type, softer and rounder cards
+and softer shadows. All of it comes from one theme layer in the design tokens
+(colors, fonts, radii, shadows, orb gradient). Linen and Sage stay available
+through EXPO_PUBLIC_THEME. The orb glow, the Reflect screen and the Ideas brain
+now follow the theme instead of hard-coded lavender, and the Home question uses
+the heading font (`src/theme/tokens.ts`, `src/theme/fonts.ts`,
+`src/components/orb.tsx`, `src/app/reflect.tsx`, `src/components/brain.tsx`).
+
+### 2026-11-15 - cc82c0a
+Jesse is now a capybara instead of an orb, on Home, the Home tab icon and the
+Reflect header. It has four generated poses (idle, blink, talking, happy) and is
+animated with Reanimated. It breathes, sways and blinks every few seconds. While
+listening it leans in and bounces with ripples. While Jesse speaks, its mouth
+moves in time with the voice (voice.ts now reports when it's speaking). It hops
+and smiles when an answer or a new conversation arrives, and hops when tapped.
+Reduce Motion is respected and the orb's accessibility labels are kept
+(`src/components/orb.tsx`, `src/lib/voice.ts`, `src/app/(tabs)/index.tsx`,
+`src/app/reflect.tsx`, `assets/jesse/`).

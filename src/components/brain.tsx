@@ -58,7 +58,7 @@ function Spark({ x, y, active, index }: { x: number; y: number; active: boolean;
           width: SPARK,
           height: SPARK,
           borderRadius: SPARK / 2,
-          backgroundColor: active ? C.accent : '#A79CEB',
+          backgroundColor: active ? C.accent : C.disabled,
         },
         style,
       ]}
@@ -171,7 +171,7 @@ export function Brain({
         <Svg width={W} height={H} style={{ position: 'absolute' }}>
           {[[110, 92, 70], [175, 72, 70], [242, 92, 70], [82, 160, 64], [268, 160, 64], [175, 162, 82]].map(
             ([cx, cy, r]) => (
-              <Circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} fill="#ECE8FB" />
+              <Circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} fill={C.accentWash} />
             ),
           )}
           {[
@@ -180,7 +180,7 @@ export function Brain({
             'M280 120 Q255 110 232 126 T200 124',
             'M135 205 Q155 195 175 208 T215 205',
           ].map((d) => (
-            <Path key={d} d={d} stroke="#DAD3F7" strokeWidth={2} strokeLinecap="round" fill="none" />
+            <Path key={d} d={d} stroke={C.accentTint} strokeWidth={2} strokeLinecap="round" fill="none" />
           ))}
           {placed.slice(1).map(({ slot }, k) => (
             <Line
@@ -189,13 +189,13 @@ export function Brain({
               y1={placed[0].slot.y}
               x2={slot.x}
               y2={slot.y}
-              stroke="#CFC8F2"
+              stroke={C.chipBorder}
               strokeWidth={1.5}
               strokeDasharray="5 5"
             />
           ))}
           {sparks.map((s) => (
-            <Line key={s.index} x1={s.from.x} y1={s.from.y} x2={s.x} y2={s.y} stroke="#B9AFF2" strokeWidth={1.5} />
+            <Line key={s.index} x1={s.from.x} y1={s.from.y} x2={s.x} y2={s.y} stroke={C.disabled} strokeWidth={1.5} />
           ))}
         </Svg>
         {sparks.map((s) => (

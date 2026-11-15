@@ -28,6 +28,7 @@ export default function Home() {
   const ask = useAskJesse();
   const voice = useVoiceInput();
   const [said, setSaid] = useState<string | null>(null);
+  const [cheer, setCheer] = useState(0);
   const [typing, setTyping] = useState(false);
   const [question, setQuestion] = useState('');
   const [micFailed, setMicFailed] = useState(false);
@@ -95,6 +96,7 @@ export default function Home() {
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
       setSaid(answer);
+      setCheer((n) => n + 1);
       if (!mutedRef.current) void speak(answer).catch(() => {});
     } catch {
       setSaid('Something went wrong. Try asking again.');
@@ -181,6 +183,7 @@ export default function Home() {
           onPress={() => void (listening.isListening ? listening.stop() : listening.start())}
           onLongPress={() => void startAsking()}
           onPressOut={() => void finishAsking()}
+          cheer={`${cheer}:${today?.length ?? 0}`}
         />
         <Text style={styles.greeting} accessibilityRole="header">
           {greeting ?? ' '}
@@ -218,7 +221,10 @@ export default function Home() {
           <Pressable
             onPress={() => {
               setSaid(null);
-              void sample.run().then((line) => line && setSaid(line));
+              void sample.run().then((line) => {
+                if (line) setSaid(line);
+                setCheer((n) => n + 1);
+              });
             }}
             disabled={sample.running}
             hitSlop={8}
@@ -293,7 +299,7 @@ const styles = StyleSheet.create({
   voiceChipOff: { borderColor: C.chipBorder, backgroundColor: C.surface },
   voiceChipText: { fontFamily: F.semibold, fontSize: 12, color: C.accentDeep },
   greeting: {
-    fontFamily: F.bold,
+    fontFamily: F.display,
     fontSize: 22,
     lineHeight: 28,
     color: C.ink,

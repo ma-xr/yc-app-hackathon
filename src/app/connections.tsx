@@ -1,12 +1,13 @@
 import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { api } from '../../convex/_generated/api';
 import { Icon } from '@/components/icon';
 import { Button, Card, Chip, Divider, EmptyCard, SectionLabel, type Tone } from '@/components/ui';
+import { openComposer } from '@/lib/actions';
 import { importDeviceContacts } from '@/lib/contacts';
 import { C, F, S, T } from '@/theme/tokens';
 
@@ -39,6 +40,8 @@ export default function ConnectionsScreen() {
   const loadSample = useMutation(api.connections.loadSample);
   const importContacts = useMutation(api.connections.importContacts);
   const runScenario = useMutation(api.scenarios.run);
+  const createLinkCode = useMutation(api.keiki.createLinkCode);
+  const seedDemo = useMutation(api.seed.demo);
   const [busy, setBusy] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, string>>({});
 
@@ -52,6 +55,37 @@ export default function ConnectionsScreen() {
     } finally {
       setBusy(null);
     }
+  };
+
+  const linkIMessage = (id: string) =>
+    act(id, async () => {
+      const { text, number } = await createLinkCode({});
+      if (!number) return 'Jesse’s number isn’t set up yet';
+      const result = await openComposer({ phone: number, body: text });
+      if (result === 'unavailable') return `Text “${text}” to ${number}`;
+      return result === 'cancelled' ? 'Not sent' : 'Sent. Jesse replies once it’s linked';
+    });
+
+  const loadDemo = () =>
+    act('demo', async () => {
+      await seedDemo({});
+      let queued = 0;
+      for (const name of ['tim', 'mom', 'deck'] as const) {
+        queued += (await runScenario({ name })).queued;
+      }
+      return `Demo memories loaded, plus ${queued} scenario events. Check Plans in a few seconds`;
+    });
+
+  const confirmLoadDemo = () => {
+    const message = 'This replaces everything Jesse has kept on this account with demo memories.';
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(message)) void loadDemo();
+      return;
+    }
+    Alert.alert('Load demo memories?', message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Replace', style: 'destructive', onPress: () => void loadDemo() },
+    ]);
   };
 
   return (
@@ -105,6 +139,14 @@ export default function ConnectionsScreen() {
                           }
                         />
                       ) : null}
+                      {c.key === 'imessage_jesse' ? (
+                        <Button
+                          compact
+                          label={busy === `${id}:link` ? 'Opening…' : 'Link my iMessage'}
+                          icon="message"
+                          onPress={() => (busy ? undefined : linkIMessage(`${id}:link`))}
+                        />
+                      ) : null}
                       {isContacts ? (
                         <Button
                           compact
@@ -127,8 +169,10 @@ export default function ConnectionsScreen() {
                           style={Platform.OS === 'web' ? { opacity: 0.5 } : undefined}
                         />
                       ) : null}
-                      {results[id] || results[`${id}:import`] ? (
-                        <Text style={[T.meta, { flexShrink: 1 }]}>{results[id] ?? results[`${id}:import`]}</Text>
+                      {results[id] || results[`${id}:import`] || results[`${id}:link`] ? (
+                        <Text style={[T.meta, { flexShrink: 1 }]}>
+                          {results[id] ?? results[`${id}:import`] ?? results[`${id}:link`]}
+                        </Text>
                       ) : null}
                     </View>
                   </View>
@@ -151,6 +195,19 @@ export default function ConnectionsScreen() {
           <Text style={T.bodySmall}>Let your own Claude read Jesse’s notes over MCP with a token you can revoke.</Text>
           <View style={styles.actions}>
             <Button compact label="Set up" onPress={() => router.push('/mcp')} />
+          </View>
+        </Card>
+
+        <SectionLabel style={{ marginTop: 8 }}>Demo</SectionLabel>
+        <Card style={{ gap: 8 }}>
+          <Text style={T.cardTitle}>Load demo memories</Text>
+          <Text style={T.bodySmall}>
+            Fills Plans, People and Ideas with sample memories and runs the Tim, Mom and deck scenarios. Replaces this
+            account’s current data.
+          </Text>
+          <View style={styles.actions}>
+            <Button compact label={busy === 'demo' ? 'Loading…' : 'Load demo memories'} onPress={busy ? undefined : confirmLoadDemo} />
+            {results.demo ? <Text style={[T.meta, { flexShrink: 1 }]}>{results.demo}</Text> : null}
           </View>
         </Card>
 
