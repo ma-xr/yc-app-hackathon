@@ -77,10 +77,14 @@ function Ripple({ progress, size }: { progress: SharedValue<number>; size: numbe
 export function Orb({
   listening,
   onPress,
+  onLongPress,
+  onPressOut,
   size = 180,
 }: {
   listening: boolean;
   onPress: () => void;
+  onLongPress?: () => void;
+  onPressOut?: () => void;
   size?: number;
 }) {
   const reduceMotion = useReducedMotion();
@@ -148,9 +152,12 @@ export function Orb({
       <Animated.View style={orbStyle}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={listening ? 'Stop listening' : 'Talk to Jesse'}
+          accessibilityLabel={listening ? 'Stop listening' : 'Start listening'}
+          accessibilityHint={listening ? undefined : 'Hold to ask Jesse a question'}
           accessibilityState={{ selected: listening }}
           onPress={onPress}
+          onLongPress={onLongPress}
+          onPressOut={onPressOut}
           style={[styles.orb, { width: size, height: size, borderRadius: size / 2 }]}>
           <OrbArt size={size} />
           <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, sheenStyle]}>

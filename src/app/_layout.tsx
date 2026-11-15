@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { api } from '../../convex/_generated/api';
 import { SignIn } from '@/components/sign-in';
 import { authStorage, convex } from '@/lib/convex';
+import { useEveningCheckIn } from '@/lib/notifications';
 import { useJesseFonts } from '@/theme/fonts';
 import { C } from '@/theme/tokens';
 
@@ -41,12 +42,19 @@ export default function RootLayout() {
           <SignIn />
         </Unauthenticated>
         <Authenticated>
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="reflect" options={{ presentation: 'modal' }} />
-          </Stack>
+          <SignedInApp />
         </Authenticated>
       </ThemeProvider>
     </ConvexAuthProvider>
+  );
+}
+
+function SignedInApp() {
+  useEveningCheckIn();
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="reflect" options={{ presentation: 'modal' }} />
+    </Stack>
   );
 }

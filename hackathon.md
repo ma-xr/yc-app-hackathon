@@ -7,9 +7,9 @@
 - **Frontend:** not deployed
 - **Convex deployment:** not deployed
 - **Components:** @convex-dev/auth (core, password and username components)
-- **Convex features:** schema, tables, indexes, queries, mutations, seed data
+- **Convex features:** schema, tables, indexes, queries, mutations, seed data, file storage, actions, scheduler
 - **Auth:** Convex Auth
-- **AI models:** none
+- **AI models:** OpenAI gpt-4o-transcribe-diarize (speech-to-text with speakers), gpt-5-mini (memory extraction), gpt-4o-mini-transcribe (voice questions), gpt-4o-mini-tts (Jesse's voice)
 - **Started:** 2026-11-15T19:15:21Z
 - **Last updated:** 2026-11-15T19:25:58Z
 
@@ -44,6 +44,7 @@ people, conversations, topics and urgent items for the signed-in user
 `convex/lib/auth.ts`).
 
 ### 2026-11-15 - working tree
+<<<<<<< HEAD
 Replaced the starter screens with Jesse's four tabs (Home, Plans, People,
 Ideas) behind the existing Convex Auth gate, with a custom tab bar, the design
 tokens and the Bricolage Grotesque + Inter fonts. Home is Jesse: an SVG orb
@@ -54,3 +55,49 @@ Add to calendar, Done, with an optimistic update). Convex features: reactive
 queries, mutations, optimistic updates (`src/app/_layout.tsx`,
 `src/app/(tabs)/index.tsx`, `src/components/orb.tsx`,
 `src/components/forget-card.tsx`, `src/data/hooks.ts`, `src/theme/tokens.ts`).
+=======
+Added listening. A `useListening` hook records the conversation in 45-second
+chunks with expo-audio and uploads each chunk to Convex file storage. An action
+transcribes the chunk with speaker labels, deletes the audio, and asks an LLM
+for strict JSON under Jesse's filtering rubric (commitments, small but urgent,
+their life, open questions, themes, growth; small talk and gossip dropped; at
+most 5 items of 12 words or fewer). A mutation matches heard names to people,
+creates new people, merges facts, topics and the gist, infers how often you
+talk, and counts the moments left out. The transcript only lives in the
+action's memory (`src/lib/listening.ts`, `convex/extract.ts`,
+`convex/conversations.ts`).
+
+### 2026-11-15 - working tree
+Added follow-ups: items with a date get a scheduled "before" text (good luck or
+see you soon) and a "how did it go?" text, promises get a nudge, and people past
+their usual cadence get an "it's been a while" nudge. Each follow-up carries 1-3
+drafts written by OpenAI in the user's voice from their past sent texts, with
+template fallbacks. Made Jesse reachable over iMessage through Keiki: a Keiki
+agent's tools call a Convex HTTP endpoint to read the user's memory, list today's
+drafts and save reminders, a 6-digit code links a phone to an account, and
+Convex pushes due follow-ups and an evening nudge as Keiki notices. Added phone
+actions for the UI: prefilled Messages composer, calendar event creation and a
+call action. Convex features: scheduler (runAfter, runAt), crons, HTTP actions,
+internal functions, typed env (`convex/followups.ts`, `convex/keiki.ts`,
+`convex/http.ts`, `convex/crons.ts`, `convex/convex.config.ts`,
+`src/lib/actions.ts`).
+
+### 2026-11-15 - working tree
+Extraction now hands every new promise or dated item to the follow-ups planner
+through a typed internal reference, so a suggested text is planned as soon as a
+conversation is processed (`convex/extract.ts`).
+
+### 2026-11-15 - working tree
+Added Jesse as a companion you can talk to. `jesse.ask` answers questions such
+as "What did I promise Sam?" from the user's own people, open items, topics,
+conversation notes and past reflections, with optional long-term recall through
+Supermemory when its key is set. Added voice: speech-to-text for push-to-talk
+(the audio is never stored) and a spoken reply whose audio file is deleted after
+ten minutes. Added the evening check-in: a daily local notification at a
+user-chosen time (default 9:30 PM) that mirrors to a paired Apple Watch and
+opens the Reflect screen, a calm voice or text chat grounded in today that keeps
+only a short summary of the user's answers. Convex features: actions, internal
+queries and mutations, scheduled functions, file storage (`convex/jesse.ts`,
+`convex/reflections.ts`, `src/app/reflect.tsx`, `src/lib/notifications.ts`,
+`src/lib/voice.ts`).
+>>>>>>> origin/main

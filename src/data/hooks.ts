@@ -1,12 +1,10 @@
-import { useMutation, useQuery } from 'convex/react';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
 import { api } from '../../convex/_generated/api';
 import type { Doc, Id } from '../../convex/_generated/dataModel';
-import * as mock from './mock';
-
-// Every screen reads data through these hooks, so a backend change touches only this file.
+import { localDate } from '@/lib/notifications';
 
 export type Person = Doc<'people'>;
 export type Item = Doc<'items'>;
@@ -70,7 +68,10 @@ export function useTopics() {
   return useQuery(api.topics.list, {});
 }
 
-// Mock until the Jesse thread's reflections.tonight lands.
 export function useTonightReflection() {
-  return mock.tonightReflection;
+  return useQuery(api.reflections.tonight, { date: localDate() });
+}
+
+export function useAskJesse() {
+  return useAction(api.jesse.ask);
 }

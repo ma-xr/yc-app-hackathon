@@ -1,4 +1,4 @@
-import { useRouter, type Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -14,7 +14,7 @@ export function ReflectionCard({ question }: { question: string }) {
       <Text style={[T.label, { color: C.darkCardMuted }]}>Tonight’s reflection</Text>
       <Text style={styles.question}>{question}</Text>
       <View style={styles.actions}>
-        <Button label="Reflect · 2 min" onPress={() => router.push('/reflect' as Href)} />
+        <Button label="Reflect · 2 min" onPress={() => router.push('/reflect')} />
         <Button label="Later" variant="outlineLight" onPress={() => setLater(true)} />
       </View>
     </View>
