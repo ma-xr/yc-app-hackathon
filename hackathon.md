@@ -234,3 +234,10 @@ package.json. Convex features: internal mutation, index query
 Home has a gear in the top-left that opens /connections, the connectors and MCP
 screen that other threads are building (`src/app/(tabs)/index.tsx`,
 `src/components/icon.tsx`).
+
+### 2026-11-15 - working tree
+Home is now just Jesse: the orb, one warm question ("Hey Poom, how was lunch with
+Sam?" or "how are you feeling?"), the Talk with Jesse button, the Voice chip and
+the Connections gear. Before you forget, the evening card and the demo-seed button
+are gone from Home. The typed ask and the sample conversation still show only
+when there's no mic (`src/app/(tabs)/index.tsx`, `src/components/greeting.ts`).
