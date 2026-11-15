@@ -61,6 +61,8 @@ async function insertFollowup(
 
 function isStale(existing: Doc<"followups">[], plans: Plan[], now: number): boolean {
   const unsent = existing.filter((f) => f.status === "scheduled" || f.status === "suggested");
+  const planned = new Set(plans.map((p) => p.reason));
+  if (unsent.some((f) => !planned.has(f.reason))) return false;
   const handled = new Set(existing.filter((f) => f.status === "sent" || f.status === "dismissed").map((f) => f.reason));
   const expected = plans.filter((p) => !handled.has(p.reason));
   if (unsent.length !== expected.length) return true;
@@ -286,15 +288,18 @@ async function draftWithOpenAI(apiKey: string, context: DraftContext): Promise<s
     context.archetype ? `About ${context.personName}: ${context.archetype}` : "",
     context.facts.length ? `Facts: ${context.facts.join("; ")}` : "",
     voice,
-    "Each text is one or two sentences, under 160 characters, warm and specific, never mentions Jesse, an app, or that anything was recorded. Each draft takes a different angle.",
+    "Each text is one or two sentences, under 160 characters, warm and specific, never mentions Jesse, an app, or that anything was recorded, never quotes exact day counts. Each draft takes a different angle.",
   ]
     .filter(Boolean)
     .join("\n");
+  const model = env.OPENAI_DRAFT_MODEL ?? "gpt-5-mini";
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(30_000),
     body: JSON.stringify({
-      model: env.OPENAI_DRAFT_MODEL ?? "gpt-5-mini",
+      model,
+      ...(model.startsWith("gpt-5") ? { reasoning_effort: "minimal" } : {}),
       messages: [
         { role: "system", content: "You write short text messages in the user's own voice. Reply in JSON." },
         { role: "user", content: prompt },
