@@ -7,9 +7,9 @@
 - **Frontend:** not deployed
 - **Convex deployment:** not deployed
 - **Components:** @convex-dev/auth (core, password and username components)
-- **Convex features:** schema, tables, indexes, queries, mutations, seed data
+- **Convex features:** schema, tables, indexes, queries, mutations, seed data, file storage, actions, scheduler
 - **Auth:** Convex Auth
-- **AI models:** none
+- **AI models:** OpenAI gpt-4o-transcribe-diarize (speech-to-text with speakers), gpt-5-mini (memory extraction)
 - **Started:** 2026-11-15T19:15:21Z
 - **Last updated:** 2026-11-15T19:25:58Z
 
@@ -42,3 +42,15 @@ people, conversations, topics and urgent items for the signed-in user
 (`convex/schema.ts`, `convex/conversations.ts`, `convex/items.ts`,
 `convex/people.ts`, `convex/topics.ts`, `convex/seed.ts`,
 `convex/lib/auth.ts`).
+
+### 2026-11-15 - working tree
+Added listening. A `useListening` hook records the conversation in 45-second
+chunks with expo-audio and uploads each chunk to Convex file storage. An action
+transcribes the chunk with speaker labels, deletes the audio, and asks an LLM
+for strict JSON under Jesse's filtering rubric (commitments, small but urgent,
+their life, open questions, themes, growth; small talk and gossip dropped; at
+most 5 items of 12 words or fewer). A mutation matches heard names to people,
+creates new people, merges facts, topics and the gist, infers how often you
+talk, and counts the moments left out. The transcript only lives in the
+action's memory (`src/lib/listening.ts`, `convex/extract.ts`,
+`convex/conversations.ts`).
