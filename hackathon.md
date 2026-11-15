@@ -312,3 +312,11 @@ follow-up draft exists). A person's page is just their upcoming plans and the
 conversation history. The suggested texts, notes composer and open-items strip
 are gone from it (`src/app/(tabs)/plans.tsx`, `src/app/person/[id].tsx`,
 `src/components/takeaway.tsx`, `src/data/plans.ts`).
+
+### 2026-11-15 - working tree
+Two demo helpers on Connections. On the "iMessage with Jesse" row, Link my
+iMessage creates a link code and opens Messages to Jesse's number with the link
+text prefilled. A Load demo memories card asks for confirmation, then runs
+seed.demo and the Tim, Mom and deck scenarios, so a fresh account fills Plans,
+People and Ideas in one tap. Calls keiki.createLinkCode, seed.demo and
+scenarios.run (`src/app/connections.tsx`).
