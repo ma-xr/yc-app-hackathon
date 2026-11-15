@@ -54,3 +54,18 @@ creates new people, merges facts, topics and the gist, infers how often you
 talk, and counts the moments left out. The transcript only lives in the
 action's memory (`src/lib/listening.ts`, `convex/extract.ts`,
 `convex/conversations.ts`).
+
+### 2026-11-15 - working tree
+Added follow-ups: items with a date get a scheduled "before" text (good luck or
+see you soon) and a "how did it go?" text, promises get a nudge, and people past
+their usual cadence get an "it's been a while" nudge. Each follow-up carries 1-3
+drafts written by OpenAI in the user's voice from their past sent texts, with
+template fallbacks. Made Jesse reachable over iMessage through Keiki: a Keiki
+agent's tools call a Convex HTTP endpoint to read the user's memory, list today's
+drafts and save reminders, a 6-digit code links a phone to an account, and
+Convex pushes due follow-ups and an evening nudge as Keiki notices. Added phone
+actions for the UI: prefilled Messages composer, calendar event creation and a
+call action. Convex features: scheduler (runAfter, runAt), crons, HTTP actions,
+internal functions, typed env (`convex/followups.ts`, `convex/keiki.ts`,
+`convex/http.ts`, `convex/crons.ts`, `convex/convex.config.ts`,
+`src/lib/actions.ts`).
