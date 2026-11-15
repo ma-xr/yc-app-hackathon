@@ -1,14 +1,13 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, withTiming } from 'react-native-reanimated';
 
 import { Brain } from '@/components/brain';
-import { firstName, relativeDay, shortDate, weekday } from '@/components/format';
+import { firstName, relativeDay, weekday } from '@/components/format';
 import { Icon } from '@/components/icon';
-import { Avatar, Button, Card, Chip, Divider, EmptyCard, H1, Screen, SectionLabel } from '@/components/ui';
-import { useItemActions } from '@/data/hooks';
-import { useIdeaTopics, useLeftOutToday, useMarkDone, useUrgentItems } from '@/data/ideas';
-import { addToCalendar } from '@/lib/actions';
+import { Avatar, Card, EmptyCard, H1, Screen, SectionLabel } from '@/components/ui';
+import { useIdeaTopics, useLeftOutToday } from '@/data/ideas';
 import { C, F, S, T } from '@/theme/tokens';
 
 type Topic = NonNullable<ReturnType<typeof useIdeaTopics>>[number];
@@ -26,65 +25,6 @@ function Chevron({ open }: { open: boolean }) {
     <Animated.View style={style}>
       <Icon name="chevronDown" size={20} color={C.mutedIcon} />
     </Animated.View>
-  );
-}
-
-function UrgentSection() {
-  const items = useUrgentItems();
-  const done = useMarkDone();
-  const { linkCalendar } = useItemActions();
-  if (!items?.length) return null;
-  return (
-    <View style={{ gap: 10 }}>
-      <SectionLabel>Small but urgent</SectionLabel>
-      <Card style={{ padding: 0 }}>
-        {items.map((item, i) => {
-          const source = item.person
-            ? `${firstName(item.person.name)} · ${shortDate(item.dueAt ?? item._creationTime)}`
-            : 'Your note';
-          return (
-            <View key={item._id}>
-              {i > 0 ? <Divider /> : null}
-              <View style={styles.urgentRow}>
-                <View style={styles.urgentText}>
-                  <View style={styles.amberDot} />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={T.cardTitle}>{item.text}</Text>
-                    <Text style={T.meta}>{source}</Text>
-                  </View>
-                </View>
-                <View style={styles.urgentActions}>
-                  {item.calendarEventId ? (
-                    <Chip tone="green">In your calendar</Chip>
-                  ) : (
-                    <Button
-                      label="Add to calendar"
-                      icon="calendarPlus"
-                      variant="outline"
-                      accessibilityLabel={`Add to calendar: ${item.text}`}
-                      onPress={async () => {
-                        const id = await addToCalendar({
-                          title: item.text,
-                          startAt: item.dueAt ?? Date.now() + 86_400_000,
-                        });
-                        if (id) await linkCalendar(item._id, id);
-                      }}
-                    />
-                  )}
-                  <Button
-                    label="Done"
-                    icon="check"
-                    variant="outline"
-                    accessibilityLabel={`Mark done: ${item.text}`}
-                    onPress={() => void done(item._id)}
-                  />
-                </View>
-              </View>
-            </View>
-          );
-        })}
-      </Card>
-    </View>
   );
 }
 
@@ -136,16 +76,43 @@ function Folder({ topic, open, onToggle }: { topic: Topic; open: boolean; onTogg
                 const when = conversation
                   ? [weekday(conversation.startedAt), conversation.place].filter(Boolean).join(' · ')
                   : relativeDay(item._creationTime);
-                return (
-                  <View key={item._id} style={styles.entry}>
+                const who = person ? firstName(person.name) : 'Your note';
+                const row = (
+                  <>
                     <Avatar name={person?.name ?? 'You'} size={28} />
                     <View style={{ flex: 1, gap: 2 }}>
                       <Text style={T.meta}>
-                        {person ? firstName(person.name) : 'Your note'} · {when}
+                        {who} · {when}
                       </Text>
                       <Text style={T.bodySmall}>{item.text}</Text>
                     </View>
-                  </View>
+                  </>
+                );
+                const open = conversation
+                  ? () => router.push({ pathname: '/conversation/[id]', params: { id: conversation._id } })
+                  : person
+                    ? () => router.push({ pathname: '/person/[id]', params: { id: person._id } })
+                    : undefined;
+                if (!open) {
+                  return (
+                    <View key={item._id} style={styles.entry}>
+                      {row}
+                    </View>
+                  );
+                }
+                return (
+                  <Pressable
+                    key={item._id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${who}, ${when}: ${item.text}`}
+                    accessibilityHint={conversation ? 'Opens the conversation' : `Opens ${who}'s page`}
+                    onPress={open}
+                    style={({ pressed }) => [styles.entry, styles.entryTap, pressed && styles.entryPressed]}>
+                    {row}
+                    <View style={styles.entryChevron}>
+                      <Icon name="chevronRight" size={18} color={C.mutedIcon} />
+                    </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -180,7 +147,6 @@ export default function Ideas() {
       ) : topics.length ? (
         <>
           <Brain topics={brainTopics} selectedId={openId} onSelect={setPicked} />
-          <UrgentSection />
           <View style={{ gap: 10 }}>
             <SectionLabel>Topics and where they branch</SectionLabel>
             {ranked.map((t) => (
@@ -194,10 +160,7 @@ export default function Ideas() {
           </View>
         </>
       ) : (
-        <>
-          <EmptyCard>No topics yet. They show up after a few conversations.</EmptyCard>
-          <UrgentSection />
-        </>
+        <EmptyCard>No topics yet. They show up after a few conversations.</EmptyCard>
       )}
 
       <View style={styles.note}>
@@ -213,10 +176,6 @@ export default function Ideas() {
 }
 
 const styles = StyleSheet.create({
-  urgentRow: { padding: 16, gap: 12 },
-  urgentText: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  amberDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.amberDot, marginTop: 6 },
-  urgentActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', paddingLeft: 20 },
   folderHead: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, minHeight: S.touch },
   folderTile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   folderBody: { paddingHorizontal: 16, paddingBottom: 16, gap: 16 },
@@ -227,5 +186,8 @@ const styles = StyleSheet.create({
   pill: { backgroundColor: C.accentWash, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, flexShrink: 1 },
   pillText: { fontFamily: F.medium, fontSize: 14, lineHeight: 19, color: C.orbDeep },
   entry: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  entryTap: { marginHorizontal: -8, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 12, minHeight: S.touch },
+  entryPressed: { backgroundColor: C.accentWash },
+  entryChevron: { alignSelf: 'center' },
   note: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
 });
