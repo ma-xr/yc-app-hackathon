@@ -8,11 +8,6 @@ const app = defineApp({
   env: {
     OPENAI_API_KEY: v.optional(v.string()),
     OPENAI_DRAFT_MODEL: v.optional(v.string()),
-    KEIKI_API_KEY: v.optional(v.string()),
-    KEIKI_AGENT_ID: v.optional(v.string()),
-    KEIKI_TOOL_SECRET: v.optional(v.string()),
-    KEIKI_LINE_NUMBER: v.optional(v.string()),
-    KEIKI_JOIN_CODE: v.optional(v.string()),
   },
 });
 

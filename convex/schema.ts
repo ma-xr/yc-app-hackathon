@@ -131,4 +131,9 @@ export default defineSchema({
     .index("by_ownerId", ["ownerId"])
     .index("by_phone", ["phone"])
     .index("by_code", ["code"]),
+
+  appSecrets: defineTable({
+    key: v.string(),
+    value: v.string(),
+  }).index("by_key", ["key"]),
 });

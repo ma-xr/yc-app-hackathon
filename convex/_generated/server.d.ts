@@ -30,11 +30,6 @@ import type { DataModel } from "./dataModel.js";
 type Env = {
   readonly CONVEX_CLOUD_URL: string;
   readonly CONVEX_SITE_URL: string;
-  readonly KEIKI_AGENT_ID: string | undefined;
-  readonly KEIKI_API_KEY: string | undefined;
-  readonly KEIKI_JOIN_CODE: string | undefined;
-  readonly KEIKI_LINE_NUMBER: string | undefined;
-  readonly KEIKI_TOOL_SECRET: string | undefined;
   readonly OPENAI_API_KEY: string | undefined;
   readonly OPENAI_DRAFT_MODEL: string | undefined;
 };
