@@ -265,3 +265,15 @@ reflection as asked, accepted, snoozed or talked (`src/lib/notifications.ts`,
 `src/app/reflect.tsx`, `src/app/(tabs)/index.tsx`, `convex/reflections.ts`,
 `convex/schema.ts`). Convex features: public mutation with auth and ownership
 check, index query, optional schema fields.
+Connector infrastructure. One internal `ingest` action takes a normalized event
+(source, kind, occurredAt, people, text) and runs the same rubric extractor as the
+audio path (`extractNotes` in `convex/extract.ts`), so events from calendar,
+iMessage, email or a conversation create the same people, items, topics and
+follow-ups. Only Jesse's notes and a minimal source record (source, kind, time,
+dedup hash) are stored, never the text. A `connections` table and screen show each
+source as Live, Sample or Off; sample fixtures under
+`convex/integrations/fixtures/` are marked as sample data. Three demo scenarios
+(tim, mom, deck) feed events through the same path. New item kinds "goal" and
+"concern" feed jesse.ask and the evening question. Convex features: internal
+action, scheduler, index query, auth-scoped mutations (`convex/integrations/`,
+`convex/connections.ts`, `convex/scenarios.ts`, `src/app/connections.tsx`).
