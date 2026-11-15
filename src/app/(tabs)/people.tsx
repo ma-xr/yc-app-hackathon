@@ -122,9 +122,9 @@ function RecentRow({ person, onPress }: { person: PersonRow; onPress: () => void
           </Text>
           <Text style={[T.meta, { fontSize: 12 }]}>{relativeDay(person.lastSeenAt)}</Text>
         </View>
-        {person.facts[0] ? (
+        {person.facts.length ? (
           <Text style={T.bodySmall} numberOfLines={1}>
-            {person.facts[0]}
+            {person.facts[person.facts.length - 1]}
           </Text>
         ) : null}
         {owe ? (

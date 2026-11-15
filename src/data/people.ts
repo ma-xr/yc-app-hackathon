@@ -33,9 +33,18 @@ export function isDrifting(person: { lastSeenAt: number; cadenceDays?: number },
   return now - person.lastSeenAt > person.cadenceDays * 1.5 * 86_400_000;
 }
 
+const DAY = 86_400_000;
+
 export function useSuggestedTexts(personId: Id<'people'>, now: number) {
-  const all = useQuery(api.followups.forToday, { dayEnd: now + 7 * 86_400_000 });
-  return all?.filter((f) => f.personId === personId) ?? [];
+  const soon = useQuery(api.followups.forToday, { dayEnd: now + DAY });
+  const later = useQuery(api.followups.forToday, { dayEnd: now + 4 * DAY });
+  const latest = useQuery(api.followups.forToday, { dayEnd: now + 7 * DAY });
+  const byId = new Map(
+    [...(soon ?? []), ...(later ?? []), ...(latest ?? [])]
+      .filter((f) => f.personId === personId)
+      .map((f) => [f._id, f]),
+  );
+  return [...byId.values()].sort((a, b) => a.sendAt - b.sendAt);
 }
 
 export function useFollowupActions() {
