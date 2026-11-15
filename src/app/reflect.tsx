@@ -22,8 +22,9 @@ import {
   saveCheckInSettings,
   type CheckInSettings,
 } from '@/lib/notifications';
-import { speak, stopSpeaking, useVoiceInput } from '@/lib/voice';
-import { C, F, ORB_STOPS } from '@/theme/tokens';
+import { OrbArt } from '@/components/orb';
+import { speak, stopSpeaking, useIsSpeaking, useVoiceInput } from '@/lib/voice';
+import { C, F } from '@/theme/tokens';
 
 
 const HEADING = F.display;
@@ -38,6 +39,7 @@ const CHECK_IN_TIMES = [
 type Turn = { role: 'jesse' | 'user'; text: string };
 
 export default function ReflectScreen() {
+  const speakingNow = useIsSpeaking();
   const date = localDate();
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const tonight = useQuery(api.reflections.tonight, { date });
@@ -139,7 +141,9 @@ export default function ReflectScreen() {
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
-          <View style={styles.orb} accessibilityElementsHidden />
+          <View style={styles.orb} accessibilityElementsHidden>
+            <OrbArt size={48} pose={speakingNow ? 'talk' : 'idle'} />
+          </View>
           <View style={styles.flex}>
             <Text style={styles.name}>Jesse</Text>
             <Text style={styles.meta}>Tonight · {today}</Text>
@@ -274,14 +278,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
-  orb: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.accent,
-    backgroundImage:
-      `radial-gradient(circle at 34% 28%, ${ORB_STOPS.map((o) => `${o.color} ${o.offset}`).join(', ')})`,
-  },
+  orb: { width: 48, height: 48 },
   name: { fontFamily: HEADING, fontSize: 26, color: C.ink },
   meta: { fontSize: 13, fontWeight: '500', color: C.muted, marginTop: 2 },
   close: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },

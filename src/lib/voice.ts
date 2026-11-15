@@ -9,7 +9,7 @@ import {
 } from 'expo-audio';
 import { File } from 'expo-file-system';
 import * as Speech from 'expo-speech';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { api } from '../../convex/_generated/api';
@@ -17,9 +17,29 @@ import { convex } from '@/lib/convex';
 
 let player: AudioPlayer | null = null;
 let generation = 0;
+let speaking = false;
+const speakingListeners = new Set<(on: boolean) => void>();
+
+function setSpeaking(on: boolean) {
+  if (speaking === on) return;
+  speaking = on;
+  speakingListeners.forEach((l) => l(on));
+}
+
+export function useIsSpeaking() {
+  const [on, setOn] = useState(speaking);
+  useEffect(() => {
+    speakingListeners.add(setOn);
+    return () => {
+      speakingListeners.delete(setOn);
+    };
+  }, []);
+  return on;
+}
 
 export async function stopSpeaking() {
   generation += 1;
+  setSpeaking(false);
   player?.remove();
   player = null;
   await Speech.stop();
@@ -45,9 +65,14 @@ export async function speak(text: string) {
       }
     });
     current.play();
+    setSpeaking(true);
   } catch {
     if (mine === generation) {
-      Speech.speak(text, { rate: 0.95, pitch: 1.0 });
+      setSpeaking(true);
+      const done = () => {
+        if (mine === generation) setSpeaking(false);
+      };
+      Speech.speak(text, { rate: 0.95, pitch: 1.0, onDone: done, onStopped: done, onError: done });
     }
   }
 }

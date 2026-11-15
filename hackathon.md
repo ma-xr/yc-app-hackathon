@@ -330,3 +330,14 @@ through EXPO_PUBLIC_THEME. The orb glow, the Reflect screen and the Ideas brain
 now follow the theme instead of hard-coded lavender, and the Home question uses
 the heading font (`src/theme/tokens.ts`, `src/theme/fonts.ts`,
 `src/components/orb.tsx`, `src/app/reflect.tsx`, `src/components/brain.tsx`).
+
+### 2026-11-15 - working tree
+Jesse is now a capybara instead of an orb, on Home, the Home tab icon and the
+Reflect header. It has four generated poses (idle, blink, talking, happy) and is
+animated with Reanimated. It breathes, sways and blinks every few seconds. While
+listening it leans in and bounces with ripples. While Jesse speaks, its mouth
+moves in time with the voice (voice.ts now reports when it's speaking). It hops
+and smiles when an answer or a new conversation arrives, and hops when tapped.
+Reduce Motion is respected and the orb's accessibility labels are kept
+(`src/components/orb.tsx`, `src/lib/voice.ts`, `src/app/(tabs)/index.tsx`,
+`src/app/reflect.tsx`, `assets/jesse/`).
