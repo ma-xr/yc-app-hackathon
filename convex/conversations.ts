@@ -169,7 +169,7 @@ function normalize(text: string) {
   return text.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, "").replace(/\s+/g, " ").trim();
 }
 
-function nearDuplicate(a: string, b: string) {
+export function nearDuplicate(a: string, b: string) {
   const x = normalize(a);
   const y = normalize(b);
   if (x === y || x.includes(y) || y.includes(x)) return true;
@@ -191,7 +191,7 @@ function matchPerson(people: Doc<"people">[], name: string) {
   return candidates.length === 1 ? candidates[0] : undefined;
 }
 
-async function findOrCreatePerson(
+export async function findOrCreatePerson(
   ctx: MutationCtx,
   ownerId: Id<"users">,
   people: Doc<"people">[],

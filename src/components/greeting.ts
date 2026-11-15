@@ -1,5 +1,5 @@
 import { firstName } from '@/components/format';
-import type { Conversation, ItemWithPerson, Person } from '@/data/hooks';
+import type { Conversation, Person } from '@/data/hooks';
 
 const MEALS = ['coffee', 'lunch', 'dinner', 'breakfast', 'brunch', 'drinks', 'class'];
 
@@ -16,7 +16,6 @@ function names(people: Person[]) {
 export function greetingLine(
   name: string | null,
   conversations: (Conversation & { people: Person[] })[],
-  cards: ItemWithPerson[],
 ) {
   const hey = name ? `Hey ${name}` : 'Hey there';
   const latest = conversations.find((c) => c.status !== 'listening' && c.people.length > 0);
@@ -25,9 +24,5 @@ export function greetingLine(
     const what = place && MEALS.includes(place) ? place : 'catching up';
     return `${hey}, how was ${what} with ${names(latest.people)}?`;
   }
-  const top = cards[0];
-  if (top) {
-    return `${hey}, before you forget: ${top.text.charAt(0).toLowerCase()}${top.text.slice(1)}.`;
-  }
-  return `${hey}, what’s on your mind?`;
+  return `${hey}, how are you feeling?`;
 }

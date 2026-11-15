@@ -1,10 +1,12 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import { action, internalMutation, query } from "./_generated/server";
+import { action, internalMutation, mutation, query } from "./_generated/server";
 import { chatJson, describeMemory, requireUser, type Memory } from "./jesse";
+import { requireUser as requireSignedIn } from "./lib/auth";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const NUMBER_WORDS = ["No one", "One person", "Two people", "Three people", "Four people", "Five people", "Six people", "Seven people", "Eight people", "Nine people", "Ten people"];
 
 function asSecondPerson(label: string) {
@@ -64,6 +66,34 @@ export const tonight = query({
       .query("items")
       .withIndex("by_ownerId_and_status", (q) => q.eq("ownerId", ownerId).eq("status", "open"))
       .take(150);
+    const dayAgo = Date.now() - DAY_MS;
+    const recentPersonal = openQuestions
+      .filter((i) => i._creationTime >= dayAgo && i.personId !== undefined && (i.kind === "fact" || i.kind === "plan"))
+      .sort((a, b) => b._creationTime - a._creationTime);
+    const personId = recentPersonal[0]?.personId;
+    const person = personId ? await ctx.db.get("people", personId) : null;
+    if (person) {
+      const fact = recentPersonal.find((i) => i.personId === personId && i.kind === "fact");
+      const plan = recentPersonal.find((i) => i.personId === personId && i.kind === "plan");
+      const noted = [fact?.text, plan?.text].filter(Boolean).map((t) => t!.replace(/[.?!]*$/, "")).join(", and ");
+      return {
+        question: `You caught up with ${person.name} today. ${noted ? `Jesse noted: ${noted}. ` : ""}What stayed with you from seeing ${person.name}?`,
+        date,
+        topicId: null,
+        summary: null,
+      };
+    }
+    const concern = openQuestions
+      .filter((i) => i.kind === "concern")
+      .sort((a, b) => b._creationTime - a._creationTime)[0];
+    if (concern) {
+      return {
+        question: `Something's been on your mind: ${concern.text.charAt(0).toLowerCase()}${concern.text.slice(1).replace(/[.?!]*$/, "")}. How are you sitting with it tonight?`,
+        date,
+        topicId: concern.topicId ?? null,
+        summary: null,
+      };
+    }
     const question = openQuestions
       .filter((i) => i.kind === "question")
       .sort((a, b) => b.importance - a.importance)[0];
@@ -163,6 +193,46 @@ export const save = internalMutation({
       return null;
     }
     await ctx.db.insert("reflections", { ownerId, date, question, topicId, messages });
+    return null;
+  },
+});
+
+export const markCheckIn = mutation({
+  args: {
+    date: v.string(),
+    state: v.union(v.literal("asked"), v.literal("accepted"), v.literal("snoozed"), v.literal("talked")),
+    question: v.optional(v.string()),
+    topicId: v.optional(v.id("topics")),
+  },
+  returns: v.null(),
+  handler: async (ctx, { date, state, question, topicId }) => {
+    const ownerId = await requireSignedIn(ctx);
+    const existing = await ctx.db
+      .query("reflections")
+      .withIndex("by_ownerId_and_date", (q) => q.eq("ownerId", ownerId).eq("date", date))
+      .unique();
+    if (existing) {
+      await ctx.db.patch("reflections", existing._id, { checkIn: state, checkInAt: Date.now() });
+      return null;
+    }
+    if (!question) {
+      return null;
+    }
+    if (topicId) {
+      const topic = await ctx.db.get("topics", topicId);
+      if (topic === null || topic.ownerId !== ownerId) {
+        topicId = undefined;
+      }
+    }
+    await ctx.db.insert("reflections", {
+      ownerId,
+      date,
+      question: question.slice(0, 400),
+      topicId,
+      messages: [],
+      checkIn: state,
+      checkInAt: Date.now(),
+    });
     return null;
   },
 });

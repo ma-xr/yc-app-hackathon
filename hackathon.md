@@ -230,6 +230,76 @@ package.json. Convex features: internal mutation, index query
 (`convex/conversations.ts`, `convex/extract.ts`, `src/app/person/[id].tsx`,
 `assets/audio/sample-conversation.m4a`).
 
+### 2026-11-15 - working tree
+Home has a gear in the top-left that opens /connections, the connectors and MCP
+screen that other threads are building (`src/app/(tabs)/index.tsx`,
+`src/components/icon.tsx`).
+
+### 2026-11-15 - working tree
+Home is now just Jesse: the orb, one warm question ("Hey Poom, how was lunch with
+Sam?" or "how are you feeling?"), the Talk with Jesse button, the Voice chip and
+the Connections gear. Before you forget, the evening card and the demo-seed button
+are gone from Home. The typed ask and the sample conversation still show only
+when there's no mic (`src/app/(tabs)/index.tsx`, `src/components/greeting.ts`).
+
+### 2026-11-15 - working tree
+Listening keeps going with the phone locked. The audio session now asks for
+background recording (allowsBackgroundRecording, shouldPlayInBackground) and the
+expo-audio plugin sets enableBackgroundRecording, which adds the Android
+microphone foreground service; iOS already had the audio background mode.
+Chunks roll over on a 5 s check once 45 s have passed, and again when the app
+comes back to the foreground, so a throttled timer can't stall them. Each chunk
+file is deleted after upload even when the upload fails, and stop or unmount
+removes any file left behind. Home shows a "Listening · since 2:10 PM" pill that
+stops listening when tapped (`src/lib/listening.ts`, `src/app/(tabs)/index.tsx`,
+`app.json`).
+
+### 2026-11-15 - working tree
+The evening check-in notification now asks "Is now a good time?" with two
+actions that also show on a paired Apple Watch: "Yes, let's talk" opens Reflect
+in voice mode, where Jesse says tonight's question out loud first (tap Voice off
+to silence it), and "Later" snoozes it for 30 minutes without opening the app.
+A small "Check in now" button next to Sign out on Home fires the same
+notification in 3 seconds for demos. Each step is recorded on tonight's
+reflection as asked, accepted, snoozed or talked (`src/lib/notifications.ts`,
+`src/app/reflect.tsx`, `src/app/(tabs)/index.tsx`, `convex/reflections.ts`,
+`convex/schema.ts`). Convex features: public mutation with auth and ownership
+check, index query, optional schema fields.
+Connector infrastructure. One internal `ingest` action takes a normalized event
+(source, kind, occurredAt, people, text) and runs the same rubric extractor as the
+audio path (`extractNotes` in `convex/extract.ts`), so events from calendar,
+iMessage, email or a conversation create the same people, items, topics and
+follow-ups. Only Jesse's notes and a minimal source record (source, kind, time,
+dedup hash) are stored, never the text. A `connections` table and screen show each
+source as Live, Sample or Off; sample fixtures under
+`convex/integrations/fixtures/` are marked as sample data. Three demo scenarios
+(tim, mom, deck) feed events through the same path. New item kinds "goal" and
+"concern" feed jesse.ask and the evening question. Convex features: internal
+action, scheduler, index query, auth-scoped mutations (`convex/integrations/`,
+`convex/connections.ts`, `convex/scenarios.ts`, `src/app/connections.tsx`).
+
+### 2026-11-15 - working tree
+Texts to Jesse become notes. A new Keiki tool, note_message, sends what the user
+tells Jesse over iMessage to the same ingest action as every other source (kind
+text_to_jesse on the live "iMessage with Jesse" connection), so a text like "had
+coffee with Dev, he's moving to Austin" turns into a fact, plans and follow-ups.
+The text itself is never stored. Convex features: HTTP action, internal action
+(`convex/http.ts`, `convex/integrations/ingest.ts`).
+Jesse now runs its own MCP server, so a user's own Claude can read their Jesse
+notes. It speaks MCP over Streamable HTTP at /mcp from a Convex httpAction:
+JSON-RPC initialize, server/discover, tools/list and tools/call, stateless, with
+JSON responses, for protocol versions 2025-03-26 through 2026-07-28. Each user
+mints a personal access token in the app under "Connect your Claude". The app
+shows it once, stores only its SHA-256 hash, and lets the user revoke it. Scopes
+are read:memory and, optionally, write:notes. Requests without a valid token get
+a 401, and every tool is scoped to the token's owner. The tools are
+search_memory, list_open_promises, list_followups, get_person,
+recent_conversations, get_goals_and_concerns and add_note (write:notes only).
+They read the live tables, so an edit in the app shows up in the next call, and
+they only return Jesse's notes because no raw text is kept. Convex features:
+httpAction, internal query and mutation, index queries (`convex/mcp/*`,
+`convex/http.ts`, `convex/schema.ts`, `src/app/mcp.tsx`).
+
 ### 2026-11-15 - simpler Plans and People
 Plans now shows each conversation's takeaways right under it: promises, plans,
 small-but-urgent items and what others owe you, each with one inline action

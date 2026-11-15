@@ -1,40 +1,30 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { router, useLocalSearchParams } from 'expo-router';
+import { type Href, router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { startOfDay } from '@/components/format';
-import { ForgetCard } from '@/components/forget-card';
+import { startOfDay, time } from '@/components/format';
+import { Icon } from '@/components/icon';
 import { displayName, greetingLine } from '@/components/greeting';
 import { Orb } from '@/components/orb';
-import { ReflectionCard } from '@/components/reflection-card';
-import { Button, EmptyCard, Screen, SectionLabel } from '@/components/ui';
+import { Button, Screen } from '@/components/ui';
 import {
   useAskJesse,
-  useBeforeYouForget,
   useNow,
-  usePeople,
-  useSeedDemo,
   useTodayConversations,
-  useTonightReflection,
 } from '@/data/hooks';
 import { useListening } from '@/lib/listening';
-import { localDate } from '@/lib/notifications';
+import { localDate, useCheckInNow } from '@/lib/notifications';
 import { getPref, PREF, setPref } from '@/lib/prefs';
 import { useSampleConversation } from '@/lib/sample-conversation';
 import { speak, stopSpeaking, useVoiceInput } from '@/lib/voice';
 import { APP_NAME, C, F, T } from '@/theme/tokens';
 
-const EVENING_HOUR = 17;
-
 export default function Home() {
-  const { evening } = useLocalSearchParams<{ evening?: string }>();
   const now = useNow();
   const listening = useListening();
-  const cards = useBeforeYouForget();
-  const seedDemo = useSeedDemo();
-  const people = usePeople();
   const { signOut } = useAuthActions();
+  const checkInNow = useCheckInNow();
   const ask = useAskJesse();
   const voice = useVoiceInput();
   const [said, setSaid] = useState<string | null>(null);
@@ -47,6 +37,10 @@ export default function Home() {
   const sample = useSampleConversation();
   const greetedOn = useRef<string | null>(null);
   const mutedRef = useRef(false);
+  const listeningRef = useRef(false);
+  useEffect(() => {
+    listeningRef.current = listening.isListening;
+  }, [listening.isListening]);
   const todayKey = localDate(new Date(now));
 
   useEffect(() => {
@@ -58,9 +52,7 @@ export default function Home() {
   }, []);
 
   const greeting =
-    cards === undefined || today === undefined || username === undefined
-      ? null
-      : greetingLine(displayName(username), today, cards);
+    today === undefined || username === undefined ? null : greetingLine(displayName(username), today);
 
   useEffect(() => {
     if (greeting === null || muted === undefined || greetedOn.current === todayKey) return;
@@ -68,7 +60,7 @@ export default function Home() {
     if (muted) return;
     void getPref(PREF.greetedOn)
       .then(async (last) => {
-        if (last === todayKey || mutedRef.current) return;
+        if (last === todayKey || mutedRef.current || listeningRef.current) return;
         await setPref(PREF.greetedOn, todayKey);
         await speak(greeting);
       })
@@ -133,9 +125,6 @@ export default function Home() {
     }
     await askJesse(spoken);
   };
-  const reflection = useTonightReflection();
-  const isEvening = evening === '1' || new Date(now).getHours() >= EVENING_HOUR;
-  const showReflection = isEvening && reflection && reflection.summary === null;
 
   const listenFailed =
     !listening.isListening && listening.status !== null && listening.status !== 'Noting what mattered…';
@@ -147,17 +136,19 @@ export default function Home() {
       ? sample.status
       : listenFailed && !said
       ? 'I can’t hear you here, so try typing.'
-      : said
-      ? said
-      : cards === undefined
-      ? '…'
-      : cards.length
-        ? `${cards.length === 1 ? 'One thing' : `${cards.length} things`} worth remembering today. Hold me to ask anything.`
-        : 'Tap me when a conversation starts. Hold me to ask anything.';
+      : said;
 
   return (
     <Screen>
       <View style={styles.topRow}>
+        <Pressable
+          onPress={() => router.push('/connections' as Href)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Connections and settings"
+          style={styles.gear}>
+          <Icon name="gear" size={22} color={C.inkSoft} />
+        </Pressable>
         <Text style={[T.appName, { textAlign: 'center' }]} accessibilityRole="header">
           {APP_NAME}
         </Text>
@@ -172,6 +163,18 @@ export default function Home() {
         </Pressable>
       </View>
 
+      {listening.isListening && listening.startedAt !== null ? (
+        <Pressable
+          onPress={() => void listening.stop()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Listening since ${time(listening.startedAt)}. Tap to stop.`}
+          style={styles.listeningPill}>
+          <View style={styles.listeningDot} />
+          <Text style={styles.listeningPillText}>Listening · since {time(listening.startedAt)}</Text>
+        </Pressable>
+      ) : null}
+
       <View style={styles.orbArea}>
         <Orb
           listening={listening.isListening}
@@ -182,7 +185,8 @@ export default function Home() {
         <Text style={styles.greeting} accessibilityRole="header">
           {greeting ?? ' '}
         </Text>
-        <View style={styles.says} accessibilityLiveRegion="polite">
+        {saysLine ? (
+          <View style={styles.says} accessibilityLiveRegion="polite">
           <Text style={[T.label, { textAlign: 'center' }]}>
             {listening.isListening ? 'Jesse is listening' : 'Jesse says'}
           </Text>
@@ -193,7 +197,8 @@ export default function Home() {
             ]}>
             {saysLine}
           </Text>
-        </View>
+          </View>
+        ) : null}
         {typing || listenFailed ? (
           <View style={styles.askRow}>
             <TextInput
@@ -226,38 +231,24 @@ export default function Home() {
         ) : null}
       </View>
 
-      {showReflection ? (
-        <ReflectionCard question={reflection.question} />
-      ) : (
-        <Button
-          label="Talk with Jesse"
-          icon="sparkle"
-          accessibilityLabel="Talk with Jesse"
-          onPress={() => router.push('/reflect')}
-          style={styles.talkButton}
-        />
-      )}
+      <Button
+        label="Talk with Jesse"
+        icon="sparkle"
+        accessibilityLabel="Talk with Jesse"
+        onPress={() => router.push('/reflect')}
+        style={styles.talkButton}
+      />
 
-      <SectionLabel>Before you forget</SectionLabel>
-      {cards === undefined ? (
-        <ActivityIndicator color={C.accent} />
-      ) : cards.length ? (
-        cards.map((item) => <ForgetCard key={item._id} item={item} />)
-      ) : (
-        <View style={{ gap: 12 }}>
-          <EmptyCard>Nothing to remember right now. You’re all caught up.</EmptyCard>
-          {people?.length === 0 ? (
-            <Button label="Load demo memories" variant="outline" onPress={() => void seedDemo({})} />
-          ) : null}
-        </View>
-      )}
-
-      <Button label="Sign out" variant="ghost" onPress={() => void signOut()} style={{ marginTop: 16 }} />
+      <View style={styles.footer}>
+        <Button label="Check in now" variant="ghost" compact onPress={() => void checkInNow()} />
+        <Button label="Sign out" variant="ghost" compact onPress={() => void signOut()} />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  footer: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 16 },
   orbArea: { alignItems: 'center', marginTop: -8 },
   says: { gap: 6, paddingHorizontal: 12, marginTop: -12, maxWidth: 340 },
   askRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, alignSelf: 'stretch' },
@@ -275,6 +266,7 @@ const styles = StyleSheet.create({
   },
   talkButton: { minHeight: 56, borderRadius: 18, marginTop: 4 },
   topRow: { justifyContent: 'center' },
+  gear: { position: 'absolute', left: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   voiceChip: {
     position: 'absolute',
     right: 0,
@@ -285,6 +277,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
+  listeningPill: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    backgroundColor: C.accentTint,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginTop: 8,
+  },
+  listeningDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.accent },
+  listeningPillText: { fontFamily: F.semibold, fontSize: 12, lineHeight: 16, color: C.accentDeep },
   voiceChipOff: { borderColor: C.chipBorder, backgroundColor: C.surface },
   voiceChipText: { fontFamily: F.semibold, fontSize: 12, color: C.accentDeep },
   greeting: {
