@@ -9,7 +9,7 @@
 - **Components:** @convex-dev/auth (core, password and username components)
 - **Convex features:** schema, tables, indexes, queries, mutations, seed data, file storage, actions, scheduler
 - **Auth:** Convex Auth
-- **AI models:** OpenAI gpt-4o-transcribe-diarize (speech-to-text with speakers), gpt-5-mini (memory extraction)
+- **AI models:** OpenAI gpt-4o-transcribe-diarize (speech-to-text with speakers), gpt-5-mini (memory extraction), gpt-4o-mini-transcribe (voice questions), gpt-4o-mini-tts (Jesse's voice)
 - **Started:** 2026-11-15T19:15:21Z
 - **Last updated:** 2026-11-15T19:25:58Z
 
@@ -74,3 +74,17 @@ internal functions, typed env (`convex/followups.ts`, `convex/keiki.ts`,
 Extraction now hands every new promise or dated item to the follow-ups planner
 through a typed internal reference, so a suggested text is planned as soon as a
 conversation is processed (`convex/extract.ts`).
+
+### 2026-11-15 - working tree
+Added Jesse as a companion you can talk to. `jesse.ask` answers questions such
+as "What did I promise Sam?" from the user's own people, open items, topics,
+conversation notes and past reflections, with optional long-term recall through
+Supermemory when its key is set. Added voice: speech-to-text for push-to-talk
+(the audio is never stored) and a spoken reply whose audio file is deleted after
+ten minutes. Added the evening check-in: a daily local notification at a
+user-chosen time (default 9:30 PM) that mirrors to a paired Apple Watch and
+opens the Reflect screen, a calm voice or text chat grounded in today that keeps
+only a short summary of the user's answers. Convex features: actions, internal
+queries and mutations, scheduled functions, file storage (`convex/jesse.ts`,
+`convex/reflections.ts`, `src/app/reflect.tsx`, `src/lib/notifications.ts`,
+`src/lib/voice.ts`).
