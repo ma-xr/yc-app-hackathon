@@ -7,7 +7,7 @@
 - **Frontend:** not deployed
 - **Convex deployment:** not deployed
 - **Components:** @convex-dev/auth (core, password and username components)
-- **Convex features:** schema, tables, indexes, queries, mutations
+- **Convex features:** schema, tables, indexes, queries, mutations, seed data
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-11-15T19:15:21Z
@@ -30,3 +30,15 @@ tables with a by_authorId index, a query for the signed-in user's moments and a
 mutation to add one. Convex features: schema, indexes, query, mutation, Convex
 Auth (`convex/schema.ts`, `convex/moments.ts`, `convex/auth.ts`,
 `convex/convex.config.ts`, `src/components/sign-in.tsx`, `src/lib/convex.ts`).
+
+### 2026-11-15 - working tree
+Replaced the moments table with Jesse's data model: people, conversations,
+items, topics, followups, reflections and keikiLinks, each scoped to the
+signed-in owner and indexed for the screens' reads. Added the read queries the
+UI uses (today's conversations, ranked open items, people with their notes,
+topics with the conversations they came from), user edits for items and
+people, conversation start and stop, and a seed mutation that loads the demo
+people, conversations, topics and urgent items for the signed-in user
+(`convex/schema.ts`, `convex/conversations.ts`, `convex/items.ts`,
+`convex/people.ts`, `convex/topics.ts`, `convex/seed.ts`,
+`convex/lib/auth.ts`).
