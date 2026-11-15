@@ -110,3 +110,14 @@ a free Apple Personal Team can sign the app. eas.json has simulator, preview
 (ad hoc) and production profiles pointing at the dev Convex deployment. Checked
 on a Revyl cloud iPhone 17 Pro Max: sign-up, sign-in, sign-out and session
 persistence after relaunch all work (`app.json`, `eas.json`, `package.json`).
+
+### 2026-11-15 - working tree
+Built the People tab and person pages. The list shows recent people with
+Jesse's latest note and what's open between you, plus "It's been a while" for
+anyone past their inferred cadence, with a one-tap text. A person page shows
+the archetype and cadence line, the Open strip (You owe / Owes you), Jesse's
+notes on them (each editable, saved through people.update), suggested texts
+from followups.forToday with Send and Not now, Coming up, and each
+conversation's gist as Jesse's notes, never quotes. A composer adds a note
+(`src/app/(tabs)/people.tsx`, `src/app/person/[id].tsx`,
+`src/components/suggested-text.tsx`, `src/data/people.ts`).
