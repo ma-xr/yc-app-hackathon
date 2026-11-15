@@ -1,8 +1,8 @@
 import { makeFunctionReference } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalAction } from "./_generated/server";
+import { action } from "./_generated/server";
 
 const OPENAI = "https://api.openai.com/v1";
 const TRANSCRIBE_MODEL = "gpt-4o-transcribe-diarize";
@@ -19,8 +19,8 @@ The transcript is diarized: each line starts with a speaker label (A, B, ...). L
 
 Keep a candidate only if it passes at least one test:
 1. Commitment: someone promised something, by a time or for a person. kind "you_owe" when the owner promised, "they_owe" when someone promised the owner, "plan" for a mutual plan with a time. Always kept.
-2. Small but urgent: trivial but with a deadline or consequence (dentist, passport, a form). kind "urgent", with dueAt when a time is known.
-3. Their life: something the other person would feel cared for if remembered: an upcoming event, a worry, a goal, a change (interview, exam, sister visiting, a move). kind "fact" with personName, and also add it to that person's "facts". Give it a dueAt when it has a date.
+2. Small but urgent: the owner's own small task with a deadline or consequence (dentist, passport, a form). kind "urgent", with dueAt when a time is known.
+3. Their life: something the other person would feel cared for if remembered: an upcoming event, a worry, a goal, a change (interview, exam, sister visiting, a move). kind "fact" with personName, and also add it to that person's "facts". Give it a dueAt when it has a date, but write days in words ("Thursday"), never as ISO dates.
 4. Open question: unresolved and still being thought about ("Stripe or startup?"). kind "question".
 5. Recurring theme: a big-picture subject (relationships, career, money, AI, school). Put it in "topics"; reuse a known topic label when it fits, and set topicLabel on the related item.
 6. Growth: a changed mind, a lesson, or advice worth keeping. kind "takeaway".
@@ -99,11 +99,27 @@ const strings = (x: unknown) => (Array.isArray(x) ? x.filter(isString).map((s) =
 const short = (s: string) => s.split(/\s+/).length <= MAX_WORDS;
 const array = (x: unknown): Raw[] => (Array.isArray(x) ? x.filter((e): e is Raw => typeof e === "object" && e !== null) : []);
 
-const PT_OFFSET = "-08:00";
+const TIME_ZONE = "America/Los_Angeles";
+
+function zoneOffsetMs(utcMs: number) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(new Date(utcMs));
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return asUtc - utcMs;
+}
 
 function localNow(now: number) {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Los_Angeles",
+    timeZone: TIME_ZONE,
     weekday: "long",
     year: "numeric",
     month: "2-digit",
@@ -118,8 +134,10 @@ function localNow(now: number) {
 
 function parseDue(x: unknown) {
   if (!isString(x) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(x)) return null;
-  const ms = Date.parse(`${x}:00${PT_OFFSET}`);
-  return Number.isNaN(ms) ? null : ms;
+  const wall = Date.parse(`${x}:00Z`);
+  if (Number.isNaN(wall)) return null;
+  const guess = wall - zoneOffsetMs(wall);
+  return wall - zoneOffsetMs(guess);
 }
 
 export function validateExtraction(raw: unknown) {
@@ -153,9 +171,9 @@ export function validateExtraction(raw: unknown) {
   };
 }
 
-async function transcribe(audio: Blob, apiKey: string) {
+async function transcribe(audio: ArrayBuffer, apiKey: string) {
   const form = new FormData();
-  form.append("file", audio, `chunk.${audio.type.includes("wav") ? "wav" : "m4a"}`);
+  form.append("file", new Blob([audio], { type: "audio/mp4" }), "chunk.m4a");
   form.append("model", TRANSCRIBE_MODEL);
   form.append("response_format", "diarized_json");
   form.append("chunking_strategy", "auto");
@@ -184,6 +202,7 @@ async function extract(transcript: string, context: unknown, apiKey: string) {
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: EXTRACT_MODEL,
+      ...(EXTRACT_MODEL.startsWith("gpt-5") ? { reasoning_effort: "low" } : {}),
       messages: [
         { role: "system", content: RUBRIC },
         {
@@ -201,17 +220,19 @@ async function extract(transcript: string, context: unknown, apiKey: string) {
   return validateExtraction(JSON.parse(content));
 }
 
-export const processChunk = internalAction({
-  args: { conversationId: v.id("conversations"), storageId: v.id("_storage") },
-  handler: async (ctx, { conversationId, storageId }) => {
+const MAX_CHUNK_BYTES = 8 * 1024 * 1024;
+
+export const processChunk = action({
+  args: { conversationId: v.id("conversations"), audio: v.bytes() },
+  handler: async (ctx, { conversationId, audio }) => {
+    if (audio.byteLength === 0 || audio.byteLength > MAX_CHUNK_BYTES) throw new ConvexError("Audio chunk is empty or too large");
+    const accepted = await ctx.runMutation(internal.conversations.beginChunk, { conversationId });
+    if (!accepted) return null;
     let applied = false;
     try {
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) throw new Error("OPENAI_API_KEY is not set on this deployment");
-      const audio = await ctx.storage.get(storageId);
-      if (audio === null) throw new Error("Audio chunk is missing");
       const transcript = await transcribe(audio, apiKey);
-      await ctx.storage.delete(storageId);
       if (transcript.length === 0) return null;
       const context = await ctx.runQuery(internal.conversations.extractionContext, { conversationId });
       if (context === null) return null;
@@ -227,7 +248,6 @@ export const processChunk = internalAction({
       }
       return null;
     } finally {
-      await ctx.storage.delete(storageId).catch(() => undefined);
       if (!applied) await ctx.runMutation(internal.conversations.chunkFailed, { conversationId });
     }
   },

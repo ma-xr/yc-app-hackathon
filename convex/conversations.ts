@@ -1,5 +1,4 @@
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { deleteItem } from "./items";
@@ -106,28 +105,16 @@ export const remove = mutation({
   },
 });
 
-export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
-    await requireUser(ctx);
-    return await ctx.storage.generateUploadUrl();
-  },
-});
-
-export const addChunk = mutation({
-  args: { conversationId: v.id("conversations"), storageId: v.id("_storage") },
-  handler: async (ctx, { conversationId, storageId }) => {
+export const beginChunk = internalMutation({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
     const ownerId = await requireUser(ctx);
     const conversation = await ctx.db.get("conversations", conversationId);
-    if (conversation === null || conversation.ownerId !== ownerId || conversation.status === "done") {
-      await ctx.storage.delete(storageId);
-      return null;
-    }
+    if (conversation === null || conversation.ownerId !== ownerId || conversation.status === "done") return false;
     await ctx.db.patch("conversations", conversationId, {
       pendingChunks: (conversation.pendingChunks ?? 0) + 1,
     });
-    await ctx.scheduler.runAfter(0, internal.extract.processChunk, { conversationId, storageId });
-    return null;
+    return true;
   },
 });
 
@@ -178,14 +165,20 @@ export const chunkFailed = internalMutation({
   },
 });
 
-function sameName(a: string, b: string) {
-  const x = a.trim().toLowerCase();
-  const y = b.trim().toLowerCase();
-  return x === y || x.split(/\s+/)[0] === y.split(/\s+/)[0];
+function normalize(text: string) {
+  return text.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, "").replace(/\s+/g, " ").trim();
 }
 
-function normalize(text: string) {
-  return text.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+function matchPerson(people: Doc<"people">[], name: string) {
+  const heard = normalize(name);
+  const exact = people.find((p) => normalize(p.name) === heard);
+  if (exact) return exact;
+  const [first, ...rest] = heard.split(" ");
+  const candidates = people.filter((p) => {
+    const [pFirst, ...pRest] = normalize(p.name).split(" ");
+    return pFirst === first && (rest.length === 0 || pRest.length === 0);
+  });
+  return candidates.length === 1 ? candidates[0] : undefined;
 }
 
 async function findOrCreatePerson(
@@ -195,7 +188,7 @@ async function findOrCreatePerson(
   name: string,
   now: number,
 ) {
-  const existing = people.find((p) => sameName(p.name, name));
+  const existing = matchPerson(people, name);
   if (existing) return existing;
   const id = await ctx.db.insert("people", {
     ownerId,
@@ -325,7 +318,7 @@ export const applyExtraction = internalMutation({
         item.personName === null
           ? undefined
           : (personIdByName.get(normalize(item.personName)) ??
-            people.find((p) => sameName(p.name, item.personName!))?._id);
+            matchPerson(people, item.personName)?._id);
       const itemId = await ctx.db.insert("items", {
         ownerId,
         conversationId,
