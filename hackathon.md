@@ -158,3 +158,10 @@ Locked the Keiki secrets bootstrap: the public mutation now stores a value only
 when its SHA-256 matches a hash committed in code, so nobody can claim the tool
 token or API key on a fresh deployment. Convex features: mutation, Web Crypto in
 the default runtime (`convex/keiki.ts`).
+
+### 2026-11-15 - working tree
+Made the app boot and run in Expo Go (SDK 58) as a demo fallback. expo-calendar
+is the only dependency Expo Go doesn't support, so it now loads lazily and only
+outside Expo Go. Inside Expo Go, Add to calendar explains that it needs the
+installed app, while listening, Jesse's answers, voice and every screen keep
+working (`src/lib/actions.ts`).
