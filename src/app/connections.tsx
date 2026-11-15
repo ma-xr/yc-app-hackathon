@@ -142,6 +142,18 @@ export default function ConnectionsScreen() {
           short notes, never message or email text.
         </Text>
 
+        <SectionLabel style={{ marginTop: 8 }}>Your Claude</SectionLabel>
+        <Card style={{ gap: 8 }}>
+          <View style={styles.rowTop}>
+            <Text style={[T.cardTitle, { flex: 1 }]}>Connect your Claude</Text>
+            <Chip tone="green">Live</Chip>
+          </View>
+          <Text style={T.bodySmall}>Let your own Claude read Jesse’s notes over MCP with a token you can revoke.</Text>
+          <View style={styles.actions}>
+            <Button compact label="Set up" onPress={() => router.push('/mcp')} />
+          </View>
+        </Card>
+
         <SectionLabel style={{ marginTop: 8 }}>Run demo scenario</SectionLabel>
         {scenarios === undefined ? (
           <ActivityIndicator color={C.accent} />
