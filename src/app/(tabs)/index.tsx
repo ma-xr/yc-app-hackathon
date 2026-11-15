@@ -141,14 +141,6 @@ export default function Home() {
   return (
     <Screen>
       <View style={styles.topRow}>
-        <Pressable
-          onPress={() => router.push('/connections' as Href)}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Connections and settings"
-          style={styles.gear}>
-          <Icon name="gear" size={22} color={C.inkSoft} />
-        </Pressable>
         <Text style={[T.appName, { textAlign: 'center' }]} accessibilityRole="header">
           {APP_NAME}
         </Text>
@@ -160,6 +152,14 @@ export default function Home() {
           accessibilityLabel="Jesse's voice"
           style={[styles.voiceChip, muted && styles.voiceChipOff]}>
           <Text style={[styles.voiceChipText, muted && { color: C.muted }]}>{muted ? 'Voice off' : 'Voice on'}</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/connections' as Href)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Connections and settings"
+          style={styles.gear}>
+          <Icon name="gear" size={22} color={C.inkSoft} />
         </Pressable>
       </View>
 
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   },
   talkButton: { minHeight: 56, borderRadius: 18, marginTop: 4 },
   topRow: { justifyContent: 'center' },
-  gear: { position: 'absolute', left: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  gear: { position: 'absolute', left: 0, zIndex: 1, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   voiceChip: {
     position: 'absolute',
     right: 0,
