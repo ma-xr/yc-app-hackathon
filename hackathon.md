@@ -229,3 +229,8 @@ doesn't duplicate promises. The person page's Open strip shows three chips and a
 package.json. Convex features: internal mutation, index query
 (`convex/conversations.ts`, `convex/extract.ts`, `src/app/person/[id].tsx`,
 `assets/audio/sample-conversation.m4a`).
+
+### 2026-11-15 - working tree
+Home has a gear in the top-left that opens /connections, the connectors and MCP
+screen that other threads are building (`src/app/(tabs)/index.tsx`,
+`src/components/icon.tsx`).

@@ -1,10 +1,11 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { router, useLocalSearchParams } from 'expo-router';
+import { type Href, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { startOfDay } from '@/components/format';
 import { ForgetCard } from '@/components/forget-card';
+import { Icon } from '@/components/icon';
 import { displayName, greetingLine } from '@/components/greeting';
 import { Orb } from '@/components/orb';
 import { ReflectionCard } from '@/components/reflection-card';
@@ -158,6 +159,14 @@ export default function Home() {
   return (
     <Screen>
       <View style={styles.topRow}>
+        <Pressable
+          onPress={() => router.push('/connections' as Href)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Connections and settings"
+          style={styles.gear}>
+          <Icon name="gear" size={22} color={C.inkSoft} />
+        </Pressable>
         <Text style={[T.appName, { textAlign: 'center' }]} accessibilityRole="header">
           {APP_NAME}
         </Text>
@@ -275,6 +284,7 @@ const styles = StyleSheet.create({
   },
   talkButton: { minHeight: 56, borderRadius: 18, marginTop: 4 },
   topRow: { justifyContent: 'center' },
+  gear: { position: 'absolute', left: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   voiceChip: {
     position: 'absolute',
     right: 0,
