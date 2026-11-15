@@ -101,3 +101,14 @@ queries and mutations, scheduled functions, file storage (`convex/jesse.ts`,
 `convex/reflections.ts`, `src/app/reflect.tsx`, `src/lib/notifications.ts`,
 `src/lib/voice.ts`).
 >>>>>>> origin/main
+
+### 2026-11-15 - working tree
+Built the People tab and person pages. The list shows recent people with
+Jesse's latest note and what's open between you, plus "It's been a while" for
+anyone past their inferred cadence, with a one-tap text. A person page shows
+the archetype and cadence line, the Open strip (You owe / Owes you), Jesse's
+notes on them (each editable, saved through people.update), suggested texts
+from followups.forToday with Send and Not now, Coming up, and each
+conversation's gist as Jesse's notes, never quotes. A composer adds a note
+(`src/app/(tabs)/people.tsx`, `src/app/person/[id].tsx`,
+`src/components/suggested-text.tsx`, `src/data/people.ts`).
