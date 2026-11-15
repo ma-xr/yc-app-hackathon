@@ -14,7 +14,7 @@ import {
   useTodayConversations,
 } from '@/data/hooks';
 import { useListening } from '@/lib/listening';
-import { localDate } from '@/lib/notifications';
+import { localDate, useCheckInNow } from '@/lib/notifications';
 import { getPref, PREF, setPref } from '@/lib/prefs';
 import { useSampleConversation } from '@/lib/sample-conversation';
 import { speak, stopSpeaking, useVoiceInput } from '@/lib/voice';
@@ -24,6 +24,7 @@ export default function Home() {
   const now = useNow();
   const listening = useListening();
   const { signOut } = useAuthActions();
+  const checkInNow = useCheckInNow();
   const ask = useAskJesse();
   const voice = useVoiceInput();
   const [said, setSaid] = useState<string | null>(null);
@@ -238,12 +239,16 @@ export default function Home() {
         style={styles.talkButton}
       />
 
-      <Button label="Sign out" variant="ghost" onPress={() => void signOut()} style={{ marginTop: 16 }} />
+      <View style={styles.footer}>
+        <Button label="Check in now" variant="ghost" compact onPress={() => void checkInNow()} />
+        <Button label="Sign out" variant="ghost" compact onPress={() => void signOut()} />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  footer: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 16 },
   orbArea: { alignItems: 'center', marginTop: -8 },
   says: { gap: 6, paddingHorizontal: 12, marginTop: -12, maxWidth: 340 },
   askRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, alignSelf: 'stretch' },
