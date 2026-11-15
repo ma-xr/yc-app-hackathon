@@ -123,6 +123,15 @@ conversation's gist as Jesse's notes, never quotes. A composer adds a note
 `src/components/suggested-text.tsx`, `src/data/people.ts`).
 
 ### 2026-11-15 - working tree
+Built the Plans tab, a trimmed calendar. A week switcher covers last, this and
+next week, and a day strip marks days with conversations and days with plans.
+Past days show each conversation's gist as Jesse's notes plus what was
+promised, read from conversations.range. Future days show the open plans and
+promises due that day, with Add to calendar and a text action, from
+items.open. Nothing claims to come from email (`src/app/(tabs)/plans.tsx`,
+`src/data/plans.ts`).
+
+### 2026-11-15 - working tree
 Built the Ideas tab ("On your mind"). An animated SVG brain fills four fixed
 bubble slots with the top topics, with sparks for sub-ideas and a halo on the
 selected one, all still under Reduce Motion. Below it are "Small but urgent"
