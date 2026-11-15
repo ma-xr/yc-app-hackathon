@@ -3,7 +3,7 @@ import { type Href, router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { startOfDay, time } from '@/components/format';
+import { startOfDay } from '@/components/format';
 import { Icon } from '@/components/icon';
 import { displayName, greetingLine } from '@/components/greeting';
 import { Orb } from '@/components/orb';
@@ -13,35 +13,30 @@ import {
   useNow,
   useTodayConversations,
 } from '@/data/hooks';
-import { useListening } from '@/lib/listening';
+import { useAlwaysOnJesse } from '@/lib/always-on';
 import { localDate, useCheckInNow } from '@/lib/notifications';
 import { getPref, PREF, setPref } from '@/lib/prefs';
 import { useSampleConversation } from '@/lib/sample-conversation';
-import { speak, stopSpeaking, useVoiceInput } from '@/lib/voice';
+import { speak, stopSpeaking, useIsSpeaking } from '@/lib/voice';
 import { APP_NAME, C, F, T } from '@/theme/tokens';
 
 export default function Home() {
   const now = useNow();
-  const listening = useListening();
   const { signOut } = useAuthActions();
   const checkInNow = useCheckInNow();
   const ask = useAskJesse();
-  const voice = useVoiceInput();
+  const speaking = useIsSpeaking();
+  const [thinking, setThinking] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const [cheer, setCheer] = useState(0);
   const [typing, setTyping] = useState(false);
   const [question, setQuestion] = useState('');
-  const [micFailed, setMicFailed] = useState(false);
   const [username, setUsername] = useState<string | null | undefined>(undefined);
   const [muted, setMuted] = useState<boolean | undefined>(undefined);
   const today = useTodayConversations(startOfDay(now));
   const sample = useSampleConversation();
   const greetedOn = useRef<string | null>(null);
   const mutedRef = useRef(false);
-  const listeningRef = useRef(false);
-  useEffect(() => {
-    listeningRef.current = listening.isListening;
-  }, [listening.isListening]);
   const todayKey = localDate(new Date(now));
 
   useEffect(() => {
@@ -61,7 +56,7 @@ export default function Home() {
     if (muted) return;
     void getPref(PREF.greetedOn)
       .then(async (last) => {
-        if (last === todayKey || mutedRef.current || listeningRef.current) return;
+        if (last === todayKey || mutedRef.current) return;
         await setPref(PREF.greetedOn, todayKey);
         await speak(greeting);
       })
@@ -76,20 +71,8 @@ export default function Home() {
     if (next) void stopSpeaking().catch(() => {});
   };
 
-  const startAsking = async () => {
-    if (listening.isListening) return;
-    try {
-      await voice.start();
-      setSaid('I’m listening. Ask me anything.');
-    } catch {
-      setSaid('I can’t hear you here, so try typing.');
-      setTyping(true);
-      setMicFailed(true);
-    }
-  };
-
   const askJesse = async (text: string) => {
-    setSaid('Thinking…');
+    setThinking(true);
     try {
       const { answer } = await ask({
         question: text,
@@ -97,11 +80,19 @@ export default function Home() {
       });
       setSaid(answer);
       setCheer((n) => n + 1);
-      if (!mutedRef.current) void speak(answer).catch(() => {});
+      if (!mutedRef.current) await speak(answer).catch(() => {});
     } catch {
-      setSaid('Something went wrong. Try asking again.');
+      setSaid('Something went wrong. Ask me again.');
+    } finally {
+      setThinking(false);
     }
   };
+
+  const jesse = useAlwaysOnJesse((question) => void askJesse(question));
+  const startJesse = jesse.start;
+  useEffect(() => {
+    void startJesse();
+  }, [startJesse]);
 
   const sendTyped = () => {
     const text = question.trim();
@@ -110,35 +101,19 @@ export default function Home() {
     void askJesse(text);
   };
 
-  const finishAsking = async () => {
-    if (!voice.recording) return;
-    let spoken: string;
-    try {
-      spoken = await voice.stop();
-    } catch {
-      setSaid('I can’t hear you here, so try typing.');
-      setTyping(true);
-      setMicFailed(true);
-      return;
-    }
-    if (!spoken.trim()) {
-      setSaid('I didn’t catch that. Hold me and ask again.');
-      return;
-    }
-    await askJesse(spoken);
-  };
-
-  const listenFailed =
-    !listening.isListening && listening.status !== null && listening.status !== 'Noting what mattered…';
-  const showSample = micFailed || listenFailed || sample.running;
-
-  const saysLine = listening.isListening
-    ? (listening.status ?? 'Listening…')
-    : sample.running && sample.status
-      ? sample.status
-      : listenFailed && !said
-      ? 'I can’t hear you here, so try typing.'
-      : said;
+  const micOff = jesse.mode === 'off' && jesse.error !== null;
+  const status = speaking
+    ? 'Jesse is talking'
+    : thinking
+      ? 'Thinking…'
+      : jesse.mode === 'capturing'
+        ? 'Listening'
+        : jesse.mode === 'waiting'
+          ? 'Say “Hi Jesse” to start'
+          : micOff
+            ? 'Microphone is off'
+            : 'Paused · tap Jesse to listen';
+  const live = speaking || thinking || jesse.mode === 'capturing';
 
   return (
     <Screen>
@@ -165,44 +140,22 @@ export default function Home() {
         </Pressable>
       </View>
 
-      {listening.isListening && listening.startedAt !== null ? (
-        <Pressable
-          onPress={() => void listening.stop()}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={`Listening since ${time(listening.startedAt)}. Tap to stop.`}
-          style={styles.listeningPill}>
-          <View style={styles.listeningDot} />
-          <Text style={styles.listeningPillText}>Listening · since {time(listening.startedAt)}</Text>
-        </Pressable>
-      ) : null}
-
-      <View style={styles.orbArea}>
+      <View style={styles.center}>
         <Orb
-          listening={listening.isListening}
-          onPress={() => void (listening.isListening ? listening.stop() : listening.start())}
-          onLongPress={() => void startAsking()}
-          onPressOut={() => void finishAsking()}
+          listening={jesse.mode === 'capturing'}
+          onPress={() => void (jesse.mode === 'off' ? jesse.start() : jesse.stop())}
           cheer={`${cheer}:${today?.length ?? 0}`}
+          size={220}
         />
         <Text style={styles.greeting} accessibilityRole="header">
           {greeting ?? ' '}
         </Text>
-        {saysLine ? (
-          <View style={styles.says} accessibilityLiveRegion="polite">
-          <Text style={[T.label, { textAlign: 'center' }]}>
-            {listening.isListening ? 'Jesse is listening' : 'Jesse says'}
-          </Text>
-          <Text
-            style={[
-              styles.saysText,
-              listening.isListening && { color: C.accentDeep, fontFamily: F.semibold },
-            ]}>
-            {saysLine}
-          </Text>
-          </View>
-        ) : null}
-        {typing || listenFailed ? (
+        <View style={[styles.status, live && styles.statusLive]} accessibilityLiveRegion="polite">
+          <View style={[styles.statusDot, live && styles.statusDotLive]} />
+          <Text style={[styles.statusText, live && { color: C.accentDeep }]}>{status}</Text>
+        </View>
+        {said ? <Text style={styles.saysText}>{said}</Text> : null}
+        {micOff || typing ? (
           <View style={styles.askRow}>
             <TextInput
               style={styles.askInput}
@@ -217,7 +170,7 @@ export default function Home() {
             <Button label="Ask" compact onPress={sendTyped} />
           </View>
         ) : null}
-        {showSample ? (
+        {micOff || sample.running ? (
           <Pressable
             onPress={() => {
               setSaid(null);
@@ -231,21 +184,16 @@ export default function Home() {
             accessibilityRole="link"
             style={styles.sampleLink}>
             <Text style={[styles.sampleText, sample.running && { color: C.muted }]}>
-              {sample.running ? 'Listening to the sample…' : 'Try a sample conversation'}
+              {sample.running ? (sample.status ?? 'Listening to the sample…') : 'Try a sample conversation'}
             </Text>
           </Pressable>
         ) : null}
       </View>
 
-      <Button
-        label="Talk with Jesse"
-        icon="sparkle"
-        accessibilityLabel="Talk with Jesse"
-        onPress={() => router.push('/reflect')}
-        style={styles.talkButton}
-      />
-
       <View style={styles.footer}>
+        {!micOff ? (
+          <Button label={typing ? 'Hide keyboard' : 'Type instead'} variant="ghost" compact onPress={() => setTyping((t) => !t)} />
+        ) : null}
         <Button label="Check in now" variant="ghost" compact onPress={() => void checkInNow()} />
         <Button label="Sign out" variant="ghost" compact onPress={() => void signOut()} />
       </View>
@@ -254,9 +202,41 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  footer: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 16 },
-  orbArea: { alignItems: 'center', marginTop: -8 },
-  says: { gap: 6, paddingHorizontal: 12, marginTop: -12, maxWidth: 340 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  footer: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 4, marginTop: 8 },
+  greeting: {
+    fontFamily: F.display,
+    fontSize: 22,
+    lineHeight: 28,
+    color: C.ink,
+    textAlign: 'center',
+    marginTop: -8,
+    paddingHorizontal: 12,
+    maxWidth: 360,
+  },
+  status: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginTop: 16,
+  },
+  statusLive: { backgroundColor: C.accentTint },
+  statusDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.muted },
+  statusDotLive: { backgroundColor: C.accent },
+  statusText: { fontFamily: F.semibold, fontSize: 13, lineHeight: 17, color: C.muted },
+  saysText: {
+    fontFamily: F.medium,
+    fontSize: 16,
+    lineHeight: 23,
+    color: C.inkSoft,
+    textAlign: 'center',
+    marginTop: 12,
+    paddingHorizontal: 12,
+    maxWidth: 360,
+  },
   askRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, alignSelf: 'stretch' },
   askInput: {
     flex: 1,
@@ -270,7 +250,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  talkButton: { minHeight: 56, borderRadius: 18, marginTop: 4 },
   topRow: { justifyContent: 'center' },
   gear: { position: 'absolute', left: 0, zIndex: 1, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   voiceChip: {
@@ -283,33 +262,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  listeningPill: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    backgroundColor: C.accentTint,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    marginTop: 8,
-  },
-  listeningDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.accent },
-  listeningPillText: { fontFamily: F.semibold, fontSize: 12, lineHeight: 16, color: C.accentDeep },
   voiceChipOff: { borderColor: C.chipBorder, backgroundColor: C.surface },
   voiceChipText: { fontFamily: F.semibold, fontSize: 12, color: C.accentDeep },
-  greeting: {
-    fontFamily: F.display,
-    fontSize: 22,
-    lineHeight: 28,
-    color: C.ink,
-    textAlign: 'center',
-    marginTop: -16,
-    marginBottom: 18,
-    paddingHorizontal: 12,
-    maxWidth: 360,
-  },
   sampleLink: { marginTop: 12 },
   sampleText: { fontFamily: F.semibold, fontSize: 14, color: C.accent, textDecorationLine: 'underline' },
-  saysText: { fontFamily: F.medium, fontSize: 16, lineHeight: 23, color: C.inkSoft, textAlign: 'center' },
 });
