@@ -1,8 +1,15 @@
 import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
-import { mutation, query, type QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { deleteItem } from "./items";
 import { requireOwned, requireUser } from "./lib/auth";
+import { itemKind } from "./schema";
+
+const MAX_ITEMS_PER_CONVERSATION = 5;
+const MAX_FACTS_PER_PERSON = 12;
+const MAX_SUB_IDEAS = 6;
+const DAY = 24 * 60 * 60 * 1000;
 
 async function withDetails(ctx: QueryCtx, conversation: Doc<"conversations">) {
   const people = await Promise.all(conversation.participantIds.map((id) => ctx.db.get("people", id)));
@@ -96,5 +103,258 @@ export const remove = mutation({
     }
     await ctx.db.delete("conversations", conversationId);
     return null;
+  },
+});
+
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireUser(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const addChunk = mutation({
+  args: { conversationId: v.id("conversations"), storageId: v.id("_storage") },
+  handler: async (ctx, { conversationId, storageId }) => {
+    const ownerId = await requireUser(ctx);
+    const conversation = await ctx.db.get("conversations", conversationId);
+    if (conversation === null || conversation.ownerId !== ownerId || conversation.status === "done") {
+      await ctx.storage.delete(storageId);
+      return null;
+    }
+    await ctx.db.patch("conversations", conversationId, {
+      pendingChunks: (conversation.pendingChunks ?? 0) + 1,
+    });
+    await ctx.scheduler.runAfter(0, internal.extract.processChunk, { conversationId, storageId });
+    return null;
+  },
+});
+
+export const extractionContext = internalQuery({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
+    const conversation = await ctx.db.get("conversations", conversationId);
+    if (conversation === null) return null;
+    const ownerId = conversation.ownerId;
+    const people = await ctx.db
+      .query("people")
+      .withIndex("by_ownerId_and_lastSeenAt", (q) => q.eq("ownerId", ownerId))
+      .order("desc")
+      .take(100);
+    const topics = await ctx.db
+      .query("topics")
+      .withIndex("by_ownerId_and_lastSeenAt", (q) => q.eq("ownerId", ownerId))
+      .order("desc")
+      .take(30);
+    const items = await ctx.db
+      .query("items")
+      .withIndex("by_conversationId", (q) => q.eq("conversationId", conversationId))
+      .take(20);
+    return {
+      people: people.map((p) => ({ name: p.name, archetype: p.archetype ?? null })),
+      participants: people.filter((p) => conversation.participantIds.includes(p._id)).map((p) => p.name),
+      topics: topics.map((t) => t.label),
+      gist: conversation.gist,
+      items: items.map((i) => ({ kind: i.kind, text: i.text })),
+    };
+  },
+});
+
+async function finishChunk(ctx: MutationCtx, conversation: Doc<"conversations">) {
+  const pendingChunks = Math.max(0, (conversation.pendingChunks ?? 1) - 1);
+  await ctx.db.patch("conversations", conversation._id, {
+    pendingChunks,
+    ...(conversation.status === "processing" && pendingChunks === 0 ? { status: "done" as const } : {}),
+  });
+}
+
+export const chunkFailed = internalMutation({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
+    const conversation = await ctx.db.get("conversations", conversationId);
+    if (conversation !== null) await finishChunk(ctx, conversation);
+    return null;
+  },
+});
+
+function sameName(a: string, b: string) {
+  const x = a.trim().toLowerCase();
+  const y = b.trim().toLowerCase();
+  return x === y || x.split(/\s+/)[0] === y.split(/\s+/)[0];
+}
+
+function normalize(text: string) {
+  return text.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+}
+
+async function findOrCreatePerson(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+  people: Doc<"people">[],
+  name: string,
+  now: number,
+) {
+  const existing = people.find((p) => sameName(p.name, name));
+  if (existing) return existing;
+  const id = await ctx.db.insert("people", {
+    ownerId,
+    name: name.trim(),
+    facts: [],
+    lastSeenAt: now,
+    conversationCount: 0,
+  });
+  const created = (await ctx.db.get("people", id))!;
+  people.push(created);
+  return created;
+}
+
+export const applyExtraction = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    extraction: v.object({
+      place: v.union(v.string(), v.null()),
+      gist: v.array(v.string()),
+      leftOutCount: v.number(),
+      people: v.array(
+        v.object({
+          name: v.string(),
+          archetype: v.union(v.string(), v.null()),
+          facts: v.array(v.string()),
+        }),
+      ),
+      topics: v.array(v.object({ label: v.string(), subIdeas: v.array(v.string()) })),
+      items: v.array(
+        v.object({
+          kind: itemKind,
+          text: v.string(),
+          personName: v.union(v.string(), v.null()),
+          topicLabel: v.union(v.string(), v.null()),
+          dueAt: v.union(v.number(), v.null()),
+          importance: v.number(),
+        }),
+      ),
+    }),
+  },
+  handler: async (ctx, { conversationId, extraction }) => {
+    const conversation = await ctx.db.get("conversations", conversationId);
+    if (conversation === null) return [];
+    const ownerId = conversation.ownerId;
+    const now = Date.now();
+
+    const people = await ctx.db
+      .query("people")
+      .withIndex("by_ownerId_and_lastSeenAt", (q) => q.eq("ownerId", ownerId))
+      .order("desc")
+      .take(200);
+    const participantIds = [...conversation.participantIds];
+    const personIdByName = new Map<string, Id<"people">>();
+    for (const heard of extraction.people) {
+      const person = await findOrCreatePerson(ctx, ownerId, people, heard.name, now);
+      personIdByName.set(normalize(heard.name), person._id);
+      const facts = [...person.facts];
+      for (const fact of heard.facts) {
+        if (!facts.some((f) => normalize(f) === normalize(fact))) facts.push(fact);
+      }
+      const joined = !participantIds.includes(person._id);
+      if (joined) participantIds.push(person._id);
+      const gapDays = person.conversationCount > 0 ? (now - person.lastSeenAt) / DAY : null;
+      const cadenceDays =
+        joined && gapDays !== null && gapDays >= 0.5
+          ? Math.round(person.cadenceDays ? person.cadenceDays * 0.7 + gapDays * 0.3 : gapDays)
+          : person.cadenceDays;
+      await ctx.db.patch("people", person._id, {
+        facts: facts.slice(-MAX_FACTS_PER_PERSON),
+        archetype: person.archetype ?? heard.archetype ?? undefined,
+        lastSeenAt: now,
+        conversationCount: person.conversationCount + (joined ? 1 : 0),
+        cadenceDays,
+      });
+    }
+
+    const topics = await ctx.db
+      .query("topics")
+      .withIndex("by_ownerId_and_lastSeenAt", (q) => q.eq("ownerId", ownerId))
+      .order("desc")
+      .take(100);
+    const topicIds = [...(conversation.topicIds ?? [])];
+    const topicIdByLabel = new Map<string, Id<"topics">>();
+    for (const heard of extraction.topics) {
+      let topic = topics.find((t) => normalize(t.label) === normalize(heard.label));
+      if (!topic) {
+        const id = await ctx.db.insert("topics", {
+          ownerId,
+          label: heard.label.trim(),
+          subIdeas: [],
+          conversationCount: 0,
+          peopleCount: 0,
+          lastSeenAt: now,
+        });
+        topic = (await ctx.db.get("topics", id))!;
+        topics.push(topic);
+      }
+      topicIdByLabel.set(normalize(heard.label), topic._id);
+      const subIdeas = [...topic.subIdeas];
+      for (const idea of heard.subIdeas) {
+        if (!subIdeas.some((s) => normalize(s) === normalize(idea))) subIdeas.push(idea);
+      }
+      const linked = !topicIds.includes(topic._id);
+      if (linked) topicIds.push(topic._id);
+      await ctx.db.patch("topics", topic._id, {
+        subIdeas: subIdeas.slice(-MAX_SUB_IDEAS),
+        conversationCount: topic.conversationCount + (linked ? 1 : 0),
+        peopleCount: topic.peopleCount + (linked ? Math.max(1, participantIds.length) : 0),
+        lastSeenAt: now,
+      });
+    }
+
+    const existing = await ctx.db
+      .query("items")
+      .withIndex("by_conversationId", (q) => q.eq("conversationId", conversationId))
+      .take(20);
+    const seen = new Set(existing.map((i) => normalize(i.text)));
+    const room = Math.max(0, MAX_ITEMS_PER_CONVERSATION - existing.length);
+    const fresh = extraction.items
+      .filter((i) => !seen.has(normalize(i.text)))
+      .sort((a, b) => b.importance - a.importance)
+      .slice(0, room);
+    const dropped = extraction.items.length - fresh.length;
+    const inserted: { itemId: Id<"items">; plan: boolean }[] = [];
+    for (const item of fresh) {
+      const personId =
+        item.personName === null
+          ? undefined
+          : (personIdByName.get(normalize(item.personName)) ??
+            people.find((p) => sameName(p.name, item.personName!))?._id);
+      const itemId = await ctx.db.insert("items", {
+        ownerId,
+        conversationId,
+        personId,
+        topicId: item.topicLabel === null ? undefined : topicIdByLabel.get(normalize(item.topicLabel)),
+        kind: item.kind,
+        text: item.text,
+        dueAt: item.dueAt ?? undefined,
+        importance: item.importance,
+        status: "open",
+        editedByUser: false,
+      });
+      inserted.push({ itemId, plan: item.dueAt !== null || item.kind === "you_owe" });
+    }
+
+    const gist = [...conversation.gist];
+    for (const line of extraction.gist) {
+      if (!gist.some((g) => normalize(g) === normalize(line))) gist.push(line);
+    }
+
+    await ctx.db.patch("conversations", conversationId, {
+      participantIds,
+      topicIds,
+      place: conversation.place ?? extraction.place ?? undefined,
+      gist: gist.slice(0, 3),
+      leftOutCount: conversation.leftOutCount + extraction.leftOutCount + dropped,
+    });
+    const updated = (await ctx.db.get("conversations", conversationId))!;
+    await finishChunk(ctx, updated);
+    return inserted.filter((i) => i.plan).map((i) => i.itemId);
   },
 });

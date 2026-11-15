@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as conversations from "../conversations.js";
+import type * as extract from "../extract.js";
 import type * as items from "../items.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as people from "../people.js";
@@ -26,6 +27,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   conversations: typeof conversations;
+  extract: typeof extract;
   items: typeof items;
   "lib/auth": typeof lib_auth;
   people: typeof people;
