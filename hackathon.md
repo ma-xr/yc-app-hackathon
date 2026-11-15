@@ -218,3 +218,14 @@ back the next day. Plans hides empty conversations left behind by a mic failure.
 The conversation page shows an end time only when it differs from the start
 (`src/app/(tabs)/index.tsx`, `src/lib/sample-conversation.ts`,
 `src/data/plans.ts`, `src/app/conversation/[id].tsx`).
+
+### 2026-11-15 - working tree
+Final polish. Nobody in the sample clip says the listener's name anymore, and the
+extraction prompt now treats a name used to address the owner as the owner's,
+never as a fact about someone else. Extraction skips a new open item that nearly
+matches an open item already kept for the same person, so a second sample run
+doesn't duplicate promises. The person page's Open strip shows three chips and a
+"+N more" chip that scrolls to the conversation history. Added expo-asset to
+package.json. Convex features: internal mutation, index query
+(`convex/conversations.ts`, `convex/extract.ts`, `src/app/person/[id].tsx`,
+`assets/audio/sample-conversation.m4a`).

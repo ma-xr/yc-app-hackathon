@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { type ComponentRef, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -38,6 +38,8 @@ import { addToCalendar } from "@/lib/actions";
 import { useVoiceInput } from "@/lib/voice";
 import { C, F, S, T } from "@/theme/tokens";
 
+const OPEN_CHIPS = 3;
+
 export default function PersonScreen() {
   const { id } = useLocalSearchParams<{ id: Id<"people"> }>();
   const router = useRouter();
@@ -50,6 +52,8 @@ export default function PersonScreen() {
   const suggestions = useSuggestedTexts(id, now);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const historyY = useRef(0);
 
   if (!data) {
     return (
@@ -132,16 +136,26 @@ export default function PersonScreen() {
         </Text>
         {owe.length + owed.length ? (
           <View style={styles.chips}>
-            {owe.map((i) => (
-              <Chip key={i._id} tone="accent">
-                You owe: {i.text}
-              </Chip>
-            ))}
-            {owed.map((i) => (
-              <Chip key={i._id} tone="amber">
-                Owes you: {i.text}
-              </Chip>
-            ))}
+            {[
+              ...owe.map((i) => ({ i, tone: "accent" as const, label: "You owe" })),
+              ...owed.map((i) => ({ i, tone: "amber" as const, label: "Owes you" })),
+            ]
+              .slice(0, OPEN_CHIPS)
+              .map(({ i, tone, label }) => (
+                <Chip key={i._id} tone={tone}>
+                  {label}: {i.text}
+                </Chip>
+              ))}
+            {owe.length + owed.length > OPEN_CHIPS ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Show the conversations behind these"
+                hitSlop={8}
+                onPress={() => scroll.current?.scrollTo({ y: historyY.current, animated: true })}
+              >
+                <Chip tone="neutral">+{owe.length + owed.length - OPEN_CHIPS} more</Chip>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -152,6 +166,7 @@ export default function PersonScreen() {
         keyboardVerticalOffset={0}
       >
         <ScrollView
+          ref={scroll}
           contentContainerStyle={styles.body}
           keyboardShouldPersistTaps="handled"
         >
@@ -203,7 +218,9 @@ export default function PersonScreen() {
             </>
           ) : null}
 
-          <SectionLabel>Your conversations</SectionLabel>
+          <View onLayout={(e) => (historyY.current = e.nativeEvent.layout.y)}>
+            <SectionLabel>Your conversations</SectionLabel>
+          </View>
           {conversations.length === 0 ? (
             <Text style={[T.bodySmall, { color: C.muted }]}>
               No conversations noted yet.

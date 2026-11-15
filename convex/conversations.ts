@@ -169,6 +169,16 @@ function normalize(text: string) {
   return text.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, "").replace(/\s+/g, " ").trim();
 }
 
+function nearDuplicate(a: string, b: string) {
+  const x = normalize(a);
+  const y = normalize(b);
+  if (x === y || x.includes(y) || y.includes(x)) return true;
+  const wx = new Set(x.split(" "));
+  const wy = new Set(y.split(" "));
+  const shared = [...wx].filter((w) => wy.has(w)).length;
+  return shared / Math.max(wx.size, wy.size) >= 0.7;
+}
+
 function matchPerson(people: Doc<"people">[], name: string) {
   const heard = normalize(name);
   const exact = people.find((p) => normalize(p.name) === heard);
@@ -307,18 +317,33 @@ export const applyExtraction = internalMutation({
       .take(20);
     const seen = new Set(existing.map((i) => normalize(i.text)));
     const room = Math.max(0, MAX_ITEMS_PER_CONVERSATION - existing.length);
+    const resolvePerson = (name: string | null) =>
+      name === null ? undefined : (personIdByName.get(normalize(name)) ?? matchPerson(people, name)?._id);
+    const openByPerson = new Map<Id<"people">, string[]>();
+    for (const personId of new Set(extraction.items.map((i) => resolvePerson(i.personName)))) {
+      if (personId === undefined) continue;
+      const open = await ctx.db
+        .query("items")
+        .withIndex("by_personId", (q) => q.eq("personId", personId))
+        .order("desc")
+        .take(100);
+      openByPerson.set(
+        personId,
+        open.filter((i) => i.status === "open").map((i) => i.text),
+      );
+    }
     const fresh = extraction.items
       .filter((i) => !seen.has(normalize(i.text)))
+      .filter((i) => {
+        const personId = resolvePerson(i.personName);
+        return personId === undefined || !(openByPerson.get(personId) ?? []).some((t) => nearDuplicate(t, i.text));
+      })
       .sort((a, b) => b.importance - a.importance)
       .slice(0, room);
     const dropped = extraction.items.length - fresh.length;
     const inserted: { itemId: Id<"items">; plan: boolean }[] = [];
     for (const item of fresh) {
-      const personId =
-        item.personName === null
-          ? undefined
-          : (personIdByName.get(normalize(item.personName)) ??
-            matchPerson(people, item.personName)?._id);
+      const personId = resolvePerson(item.personName);
       const itemId = await ctx.db.insert("items", {
         ownerId,
         conversationId,
