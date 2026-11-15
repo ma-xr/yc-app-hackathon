@@ -185,3 +185,10 @@ and the page ends with "Jesse keeps notes, not words". The card widget moved to 
 shared component. Reads conversations.get and topics.list
 (`src/app/conversation/[id].tsx`, `src/components/conversation-card.tsx`,
 `src/app/(tabs)/plans.tsx`).
+
+### 2026-11-15 - working tree
+The person page now lists "Your conversations" newest first, with the same card
+as Plans (time, kind chip, title, gist and promises). Each card opens the
+conversation page. Jesse's notes moved to the end of the page, after Ready to
+send, Coming up and the conversation history. Reads people.get
+(`src/app/person/[id].tsx`).
