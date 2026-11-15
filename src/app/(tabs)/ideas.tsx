@@ -5,7 +5,8 @@ import Animated, { useAnimatedStyle, useReducedMotion, withTiming } from 'react-
 import { Brain } from '@/components/brain';
 import { firstName, relativeDay, shortDate, weekday } from '@/components/format';
 import { Icon } from '@/components/icon';
-import { Avatar, Button, Card, Divider, EmptyCard, H1, Screen, SectionLabel } from '@/components/ui';
+import { Avatar, Button, Card, Chip, Divider, EmptyCard, H1, Screen, SectionLabel } from '@/components/ui';
+import { useItemActions } from '@/data/hooks';
 import { useIdeaTopics, useLeftOutToday, useMarkDone, useUrgentItems } from '@/data/ideas';
 import { addToCalendar } from '@/lib/actions';
 import { C, F, S, T } from '@/theme/tokens';
@@ -19,7 +20,7 @@ function plural(n: number, word: string) {
 function Chevron({ open }: { open: boolean }) {
   const reduce = useReducedMotion();
   const style = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${reduce ? (open ? 180 : 0) : withTiming(open ? 180 : 0, { duration: 200 })}deg` }],
+    transform: [{ rotate: reduce ? `${open ? 180 : 0}deg` : withTiming(`${open ? 180 : 0}deg`, { duration: 200 }) }],
   }));
   return (
     <Animated.View style={style}>
@@ -31,6 +32,7 @@ function Chevron({ open }: { open: boolean }) {
 function UrgentSection() {
   const items = useUrgentItems();
   const done = useMarkDone();
+  const { linkCalendar } = useItemActions();
   if (!items?.length) return null;
   return (
     <View style={{ gap: 10 }}>
@@ -52,15 +54,23 @@ function UrgentSection() {
                   </View>
                 </View>
                 <View style={styles.urgentActions}>
-                  <Button
-                    label="Add to calendar"
-                    icon="calendarPlus"
-                    variant="outline"
-                    accessibilityLabel={`Add to calendar: ${item.text}`}
-                    onPress={() =>
-                      void addToCalendar({ title: item.text, startAt: item.dueAt ?? Date.now() + 86_400_000 })
-                    }
-                  />
+                  {item.calendarEventId ? (
+                    <Chip tone="green">In your calendar</Chip>
+                  ) : (
+                    <Button
+                      label="Add to calendar"
+                      icon="calendarPlus"
+                      variant="outline"
+                      accessibilityLabel={`Add to calendar: ${item.text}`}
+                      onPress={async () => {
+                        const id = await addToCalendar({
+                          title: item.text,
+                          startAt: item.dueAt ?? Date.now() + 86_400_000,
+                        });
+                        if (id) await linkCalendar(item._id, id);
+                      }}
+                    />
+                  )}
                   <Button
                     label="Done"
                     icon="check"
@@ -194,10 +204,9 @@ export default function Ideas() {
         <Icon name="funnel" size={18} color={C.mutedIcon} />
         <Text style={[T.bodySmall, { flex: 1, color: C.muted }]}>
           {leftOut
-            ? `Left out today: ${leftOut} small-talk moments, like lunch orders and the weather.`
+            ? `Left out today: ${leftOut} small-talk moments, like lunch orders and the weather. Jesse didn’t keep them.`
             : 'Nothing left out yet today.'}
         </Text>
-        <Button label="Review" variant="ghost" accessibilityLabel="Review what was left out today" />
       </View>
     </Screen>
   );
