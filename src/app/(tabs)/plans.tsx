@@ -1,11 +1,12 @@
 import { useMutation } from 'convex/react';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '../../../convex/_generated/api';
-import { dayDiff, firstName, fullDate, startOfDay, time, weekday } from '@/components/format';
+import { dayDiff, firstName, fullDate, startOfDay, weekday } from '@/components/format';
+import { ConversationCard, EntryCard } from '@/components/conversation-card';
 import { Icon } from '@/components/icon';
-import { Button, Card, Chip, EmptyCard, H1, Screen, type Tone } from '@/components/ui';
+import { Button, EmptyCard, H1, Screen, type Tone } from '@/components/ui';
 import { useNow } from '@/data/hooks';
 import { addDays, usePlansWeek, weekStartOf, type PlansWeek } from '@/data/plans';
 import { addToCalendar, openComposer } from '@/lib/actions';
@@ -13,7 +14,6 @@ import { C, F, S, shadow, T } from '@/theme/tokens';
 
 const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-type Conversation = PlansWeek['conversations'][number];
 type PlanItem = PlansWeek['items'][number];
 
 function weekLabel(start: number) {
@@ -184,61 +184,6 @@ function ChevronButton({
       style={styles.chevron}>
       <Icon name={icon} size={22} color={disabled ? C.disabled : C.ink} strokeWidth={2} />
     </Pressable>
-  );
-}
-
-function EntryCard({
-  at,
-  chip,
-  title,
-  detail,
-  extra,
-  children,
-}: {
-  at: number;
-  chip: { label: string; tone: Tone };
-  title: string;
-  detail?: string;
-  extra?: { text: string; color: string }[];
-  children?: ReactNode;
-}) {
-  return (
-    <Card style={styles.entry}>
-      <Text style={styles.time}>{time(at)}</Text>
-      <View style={{ flex: 1, gap: 6 }}>
-        <Chip tone={chip.tone}>{chip.label}</Chip>
-        <Text style={T.cardTitle}>{title}</Text>
-        {detail ? <Text style={T.bodySmall}>{detail}</Text> : null}
-        {extra?.map((e) => (
-          <Text key={e.text} style={[styles.extra, { color: e.color }]}>
-            {e.text}
-          </Text>
-        ))}
-        {children}
-      </View>
-    </Card>
-  );
-}
-
-function ConversationCard({ conversation }: { conversation: Conversation }) {
-  const names = conversation.people.map((p) => firstName(p.name));
-  const withNames = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
-  const title = [conversation.place ?? 'Conversation', withNames ? `with ${withNames}` : null].filter(Boolean).join(' ');
-  const extra = conversation.items
-    .filter((i) => i.status === 'open' && (i.kind === 'you_owe' || i.kind === 'they_owe'))
-    .map((i) => {
-      if (i.kind === 'you_owe') return { text: `You promised: ${i.text}`, color: C.accentDeep };
-      const who = conversation.people.find((p) => p._id === i.personId) ?? conversation.people[0];
-      return { text: `${who ? firstName(who.name) : 'They'} owes you: ${i.text}`, color: C.amberText };
-    });
-  return (
-    <EntryCard
-      at={conversation.startedAt}
-      chip={{ label: 'Conversation', tone: 'neutral' }}
-      title={title}
-      detail={conversation.gist.join('\n')}
-      extra={extra}
-    />
   );
 }
 
