@@ -1,3 +1,4 @@
+import { nearDuplicate } from "./conversations";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
@@ -67,6 +68,14 @@ export const update = mutation({
       throw new ConvexError("Importance is 1 to 5");
     }
     const edited = fields.text !== undefined || fields.kind !== undefined || dueAt !== undefined;
+    const before = await ctx.db.get("items", itemId);
+    if (before && fields.text !== undefined && before.kind === "fact" && before.personId !== undefined) {
+      const person = await ctx.db.get("people", before.personId);
+      if (person) {
+        const facts = person.facts.map((f) => (nearDuplicate(f, before.text) ? fields.text! : f));
+        await ctx.db.patch("people", person._id, { facts: facts.includes(fields.text) ? facts : [...facts, fields.text] });
+      }
+    }
     await ctx.db.patch("items", itemId, {
       ...fields,
       ...(dueAt !== undefined ? { dueAt: dueAt ?? undefined } : {}),

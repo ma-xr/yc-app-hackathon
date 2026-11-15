@@ -131,6 +131,8 @@ const ITEM_LABELS: Record<string, string> = {
   fact: "fact",
   question: "open question",
   takeaway: "takeaway",
+  goal: "your goal",
+  concern: "on your mind",
 };
 
 export function describeMemory(memory: Memory, timeZone: string) {
@@ -148,8 +150,13 @@ export function describeMemory(memory: Memory, timeZone: string) {
     const about = [p.archetype, ...p.facts].filter(Boolean).join("; ");
     lines.push(`- ${p.name}${about ? `: ${about}` : ""} (last talked ${when(p.lastSeenAt)}, ${p.conversationCount} conversations)`);
   }
+  const personal = memory.items.filter((i) => i.kind === "goal" || i.kind === "concern");
+  if (personal.length > 0) {
+    lines.push("", "THE USER'S OWN GOALS AND RECENT CONCERNS");
+    for (const i of personal) lines.push(`- [${i.kind}] ${i.text}`);
+  }
   lines.push("", "OPEN ITEMS");
-  for (const i of memory.items) {
+  for (const i of memory.items.filter((i) => i.kind !== "goal" && i.kind !== "concern")) {
     const tags = [ITEM_LABELS[i.kind] ?? i.kind, i.person, i.dueAt ? `due ${when(i.dueAt)}` : null]
       .filter(Boolean)
       .join(" · ");

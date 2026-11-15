@@ -6,7 +6,7 @@ const OPENAI = "https://api.openai.com/v1";
 const TRANSCRIBE_MODEL = "gpt-4o-transcribe-diarize";
 const EXTRACT_MODEL = process.env.OPENAI_EXTRACT_MODEL ?? "gpt-5-mini";
 const MAX_WORDS = 12;
-const KINDS = ["you_owe", "they_owe", "plan", "urgent", "fact", "question", "takeaway"] as const;
+const KINDS = ["you_owe", "they_owe", "plan", "urgent", "fact", "question", "takeaway", "goal", "concern"] as const;
 type Kind = (typeof KINDS)[number];
 
 const RUBRIC = `You are Jesse, a memory companion that listens to the phone owner's conversations and keeps only what a thoughtful friend would want to remember. You never keep the words themselves: write every note in your own voice, never as a quote.
@@ -20,6 +20,8 @@ Keep a candidate only if it passes at least one test:
 4. Open question: unresolved and still being thought about ("Stripe or startup?"). kind "question".
 5. Recurring theme: a big-picture subject (relationships, career, money, AI, school). Put it in "topics"; reuse a known topic label when it fits, and set topicLabel on the related item.
 6. Growth: a changed mind, a lesson, or advice worth keeping. kind "takeaway".
+7. The owner's own goal: something the owner says they are working toward (a race, a skill, a project). kind "goal", personName null, written like "Run a half marathon in spring".
+8. The owner's own recent concern: something the owner says is worrying them. kind "concern", personName null, written gently like "Worried about finding a job after graduation". Only the owner's own worries, never someone else's.
 
 Drop: small talk, greetings, weather, food orders, logistics already settled, gossip about people who are not present, and sensitive details about others (health, money, relationships) unless the speaker shared them about themselves. Final check: drop anything the other person would be embarrassed to see in the owner's notes. Count every dropped small-talk moment in leftOutCount.
 
@@ -192,7 +194,7 @@ async function transcribe(audio: ArrayBuffer, apiKey: string) {
   return lines.length > 0 ? lines.join("\n") : (body.text ?? "").trim();
 }
 
-async function extract(transcript: string, context: unknown, apiKey: string) {
+export async function extractNotes(text: string, context: unknown, apiKey: string, source = "Transcript chunk") {
   const res = await fetch(`${OPENAI}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -203,7 +205,7 @@ async function extract(transcript: string, context: unknown, apiKey: string) {
         { role: "system", content: RUBRIC },
         {
           role: "user",
-          content: `Current time: ${localNow(Date.now())}\n\nWhat Jesse already knows (JSON):\n${JSON.stringify(context)}\n\nTranscript chunk:\n${transcript}`,
+          content: `Current time: ${localNow(Date.now())}\n\nWhat Jesse already knows (JSON):\n${JSON.stringify(context)}\n\n${source}:\n${text}`,
         },
       ],
       response_format: { type: "json_schema", json_schema: { name: "jesse_memory", strict: true, schema: SCHEMA } },
@@ -232,7 +234,7 @@ export const processChunk = action({
       if (transcript.length === 0) return null;
       const context = await ctx.runQuery(internal.conversations.extractionContext, { conversationId });
       if (context === null) return null;
-      const extraction = await extract(transcript, context, apiKey);
+      const extraction = await extractNotes(transcript, context, apiKey);
       const planIds = await ctx.runMutation(internal.conversations.applyExtraction, { conversationId, extraction });
       applied = true;
       for (const itemId of planIds) {

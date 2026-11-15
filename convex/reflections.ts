@@ -6,6 +6,7 @@ import { chatJson, describeMemory, requireUser, type Memory } from "./jesse";
 import { requireUser as requireSignedIn } from "./lib/auth";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const NUMBER_WORDS = ["No one", "One person", "Two people", "Three people", "Four people", "Five people", "Six people", "Seven people", "Eight people", "Nine people", "Ten people"];
 
 function asSecondPerson(label: string) {
@@ -65,6 +66,34 @@ export const tonight = query({
       .query("items")
       .withIndex("by_ownerId_and_status", (q) => q.eq("ownerId", ownerId).eq("status", "open"))
       .take(150);
+    const dayAgo = Date.now() - DAY_MS;
+    const recentPersonal = openQuestions
+      .filter((i) => i._creationTime >= dayAgo && i.personId !== undefined && (i.kind === "fact" || i.kind === "plan"))
+      .sort((a, b) => b._creationTime - a._creationTime);
+    const personId = recentPersonal[0]?.personId;
+    const person = personId ? await ctx.db.get("people", personId) : null;
+    if (person) {
+      const fact = recentPersonal.find((i) => i.personId === personId && i.kind === "fact");
+      const plan = recentPersonal.find((i) => i.personId === personId && i.kind === "plan");
+      const noted = [fact?.text, plan?.text].filter(Boolean).map((t) => t!.replace(/[.?!]*$/, "")).join(", and ");
+      return {
+        question: `You caught up with ${person.name} today. ${noted ? `Jesse noted: ${noted}. ` : ""}What stayed with you from seeing ${person.name}?`,
+        date,
+        topicId: null,
+        summary: null,
+      };
+    }
+    const concern = openQuestions
+      .filter((i) => i.kind === "concern")
+      .sort((a, b) => b._creationTime - a._creationTime)[0];
+    if (concern) {
+      return {
+        question: `Something's been on your mind: ${concern.text.charAt(0).toLowerCase()}${concern.text.slice(1).replace(/[.?!]*$/, "")}. How are you sitting with it tonight?`,
+        date,
+        topicId: concern.topicId ?? null,
+        summary: null,
+      };
+    }
     const question = openQuestions
       .filter((i) => i.kind === "question")
       .sort((a, b) => b.importance - a.importance)[0];

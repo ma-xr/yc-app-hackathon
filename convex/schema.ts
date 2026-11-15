@@ -15,6 +15,8 @@ export const itemKind = v.union(
   v.literal("fact"),
   v.literal("question"),
   v.literal("takeaway"),
+  v.literal("goal"),
+  v.literal("concern"),
 );
 
 export const itemStatus = v.union(
@@ -29,6 +31,16 @@ export const followupStatus = v.union(
   v.literal("sent"),
   v.literal("dismissed"),
 );
+
+export const eventSource = v.union(
+  v.literal("calendar"),
+  v.literal("imessage"),
+  v.literal("email"),
+  v.literal("contacts"),
+  v.literal("conversation"),
+);
+
+export const connectionMode = v.union(v.literal("live"), v.literal("sample"), v.literal("off"));
 
 export default defineSchema({
   users: defineTable({}),
@@ -135,6 +147,28 @@ export default defineSchema({
     .index("by_ownerId", ["ownerId"])
     .index("by_phone", ["phone"])
     .index("by_code", ["code"]),
+
+  connections: defineTable({
+    ownerId: v.id("users"),
+    key: v.string(),
+    source: eventSource,
+    mode: connectionMode,
+    lastSyncAt: v.optional(v.number()),
+    itemCount: v.number(),
+  }).index("by_ownerId_and_key", ["ownerId", "key"]),
+
+  sourceEvents: defineTable({
+    ownerId: v.id("users"),
+    connectionKey: v.string(),
+    source: eventSource,
+    kind: v.string(),
+    occurredAt: v.number(),
+    hash: v.string(),
+    conversationId: v.optional(v.id("conversations")),
+    itemCount: v.number(),
+  })
+    .index("by_ownerId_and_hash", ["ownerId", "hash"])
+    .index("by_ownerId_and_occurredAt", ["ownerId", "occurredAt"]),
 
   appSecrets: defineTable({
     key: v.string(),
