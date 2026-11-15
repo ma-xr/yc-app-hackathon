@@ -257,7 +257,7 @@ export const applyExtraction = internalMutation({
       personIdByName.set(normalize(heard.name), person._id);
       const facts = [...person.facts];
       for (const fact of heard.facts) {
-        if (!facts.some((f) => normalize(f) === normalize(fact))) facts.push(fact);
+        if (!facts.some((f) => nearDuplicate(f, fact))) facts.push(fact);
       }
       const joined = !participantIds.includes(person._id);
       if (joined) participantIds.push(person._id);
