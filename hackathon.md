@@ -1,21 +1,22 @@
 # Hackathon log
 
-- **Project:** yc-app-hackathon
-- **What it does:** Not documented yet
+- **Project:** Jesse
+- **Event:** YC Consumer Mobile Hackathon
+- **What it does:** A companion app that listens to your conversations with consent and keeps only short, editable notes (promises, plans, facts about people, topics, goals and concerns), never audio or transcripts, then helps you follow up and reflect.
 - **Live app:** not deployed
 - **Repo:** https://github.com/ma-xr/yc-app-hackathon
-- **Frontend:** not deployed
-- **Convex deployment:** not deployed
+- **Frontend:** Other (Expo SDK 58 iOS app, run in Expo Go or a Release build; no hosted web frontend)
+- **Convex deployment:** https://colorful-fish-461.convex.cloud
 - **Components:** @convex-dev/auth (core, password and username components)
-- **Convex features:** schema, tables, indexes, queries, mutations, seed data, file storage, actions, scheduler
+- **Convex features:** schema, tables, indexes, realtime queries, mutations, optimistic updates, actions, internal functions, scheduled functions, crons, HTTP actions (Keiki tool endpoint and an MCP server), file storage, typed env
 - **Auth:** Convex Auth
-- **AI models:** OpenAI gpt-4o-transcribe-diarize (speech-to-text with speakers), gpt-5-mini (memory extraction), gpt-4o-mini-transcribe (voice questions), gpt-4o-mini-tts (Jesse's voice)
-- **Started:** 2026-11-15T19:15:21Z
-- **Last updated:** 2026-11-15T19:25:58Z
+- **AI models:** OpenAI gpt-4o-transcribe-diarize (speech-to-text with speakers), gpt-5-mini (note extraction, follow-up drafts, jesse.ask answers), gpt-4o-mini-transcribe (voice questions), gpt-4o-mini-tts (Jesse's voice); Supermemory API for optional long-term recall; the Keiki iMessage agent runs google/gemini-3.8-flash (configured in Keiki)
+- **Started:** 2026-11-15T19:16:45Z
+- **Last updated:** 2026-11-15T23:34:33Z
 
 ## Log
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 80d7f1d
 Scaffolded an Expo app with Expo Router and TypeScript at the repo root, with
 file-based routes for a home and explore screen (`src/app/_layout.tsx`,
 `src/app/index.tsx`, `src/app/explore.tsx`). Added Convex as the backend with
@@ -31,7 +32,7 @@ mutation to add one. Convex features: schema, indexes, query, mutation, Convex
 Auth (`convex/schema.ts`, `convex/moments.ts`, `convex/auth.ts`,
 `convex/convex.config.ts`, `src/components/sign-in.tsx`, `src/lib/convex.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - bdee468
 Replaced the moments table with Jesse's data model: people, conversations,
 items, topics, followups, reflections and keikiLinks, each scoped to the
 signed-in owner and indexed for the screens' reads. Added the read queries the
@@ -43,22 +44,11 @@ people, conversations, topics and urgent items for the signed-in user
 `convex/people.ts`, `convex/topics.ts`, `convex/seed.ts`,
 `convex/lib/auth.ts`).
 
-### 2026-11-15 - working tree
-Replaced the starter screens with Jesse's four tabs (Home, Plans, People,
-Ideas) behind the existing Convex Auth gate, with a custom tab bar, the design
-tokens and the Bricolage Grotesque + Inter fonts. Home is Jesse: an SVG orb
-with idle and listening animations that respect Reduce Motion, a "Jesse says"
-line, Tonight's reflection in the evening, and up to three "Before you forget"
-cards read live from the ranked open items, each with its action inline (Text,
-Add to calendar, Done, with an optimistic update). Convex features: reactive
-queries, mutations, optimistic updates (`src/app/_layout.tsx`,
-`src/app/(tabs)/index.tsx`, `src/components/orb.tsx`,
-`src/components/forget-card.tsx`, `src/data/hooks.ts`, `src/theme/tokens.ts`).
-
-### 2026-11-15 - working tree
+### 2026-11-15 - d761a56
 Added listening. A `useListening` hook records the conversation in 45-second
-chunks with expo-audio and uploads each chunk to Convex file storage. An action
-transcribes the chunk with speaker labels, deletes the audio, and asks an LLM
+chunks with expo-audio and sends each chunk's bytes straight to an authenticated
+action (no file storage). The action transcribes the chunk with speaker labels
+and asks an LLM
 for strict JSON under Jesse's filtering rubric (commitments, small but urgent,
 their life, open questions, themes, growth; small talk and gossip dropped; at
 most 5 items of 12 words or fewer). A mutation matches heard names to people,
@@ -67,7 +57,7 @@ talk, and counts the moments left out. The transcript only lives in the
 action's memory (`src/lib/listening.ts`, `convex/extract.ts`,
 `convex/conversations.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - d9f5082
 Added follow-ups: items with a date get a scheduled "before" text (good luck or
 see you soon) and a "how did it go?" text, promises get a nudge, and people past
 their usual cadence get an "it's been a while" nudge. Each follow-up carries 1-3
@@ -82,12 +72,12 @@ internal functions, typed env (`convex/followups.ts`, `convex/keiki.ts`,
 `convex/http.ts`, `convex/crons.ts`, `convex/convex.config.ts`,
 `src/lib/actions.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - a938ee4
 Extraction now hands every new promise or dated item to the follow-ups planner
 through a typed internal reference, so a suggested text is planned as soon as a
 conversation is processed (`convex/extract.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 8217e85
 Added Jesse as a companion you can talk to. `jesse.ask` answers questions such
 as "What did I promise Sam?" from the user's own people, open items, topics,
 conversation notes and past reflections, with optional long-term recall through
@@ -101,7 +91,7 @@ queries and mutations, scheduled functions, file storage (`convex/jesse.ts`,
 `convex/reflections.ts`, `src/app/reflect.tsx`, `src/lib/notifications.ts`,
 `src/lib/voice.ts`).
 
-### 2026-11-15 - device config
+### 2026-11-15 - 1f38550
 Configured the native build for a real device and Revyl's cloud iPhone. The
 app is named Jesse (bundle id com.maxr.jesse). Config plugins set the
 microphone, calendar, reminders and contacts permission strings and turn on
@@ -111,7 +101,19 @@ a free Apple Personal Team can sign the app. eas.json has simulator, preview
 on a Revyl cloud iPhone 17 Pro Max: sign-up, sign-in, sign-out and session
 persistence after relaunch all work (`app.json`, `eas.json`, `package.json`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - d832587
+Replaced the starter screens with Jesse's four tabs (Home, Plans, People,
+Ideas) behind the existing Convex Auth gate, with a custom tab bar, the design
+tokens and the Bricolage Grotesque + Inter fonts. Home is Jesse: an SVG orb
+with idle and listening animations that respect Reduce Motion, a "Jesse says"
+line, Tonight's reflection in the evening, and up to three "Before you forget"
+cards read live from the ranked open items, each with its action inline (Text,
+Add to calendar, Done, with an optimistic update). Convex features: reactive
+queries, mutations, optimistic updates (`src/app/_layout.tsx`,
+`src/app/(tabs)/index.tsx`, `src/components/orb.tsx`,
+`src/components/forget-card.tsx`, `src/data/hooks.ts`, `src/theme/tokens.ts`).
+
+### 2026-11-15 - ff91cd6
 Built the People tab and person pages. The list shows recent people with
 Jesse's latest note and what's open between you, plus "It's been a while" for
 anyone past their inferred cadence, with a one-tap text. A person page shows
@@ -122,7 +124,7 @@ conversation's gist as Jesse's notes, never quotes. A composer adds a note
 (`src/app/(tabs)/people.tsx`, `src/app/person/[id].tsx`,
 `src/components/suggested-text.tsx`, `src/data/people.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - cfb9d5b
 Built the Plans tab, a trimmed calendar. A week switcher covers last, this and
 next week, and a day strip marks days with conversations and days with plans.
 Past days show each conversation's gist as Jesse's notes plus what was
@@ -131,7 +133,7 @@ promises due that day, with Add to calendar and a text action, from
 items.open. Nothing claims to come from email (`src/app/(tabs)/plans.tsx`,
 `src/data/plans.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 0930029
 Built the Ideas tab ("On your mind"). An animated SVG brain fills four fixed
 bubble slots with the top topics, with sparks for sub-ideas and a halo on the
 selected one, all still under Reduce Motion. Below it are "Small but urgent"
@@ -140,7 +142,7 @@ the conversations each idea came from, and a "Left out today" note summed from
 today's conversations. Reads topics.list, items.open and conversations.today
 (`src/app/(tabs)/ideas.tsx`, `src/components/brain.tsx`, `src/data/ideas.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 22908eb
 Moved Jesse's Keiki config off Convex env vars, because the shared dev deploy
 key can't write them: the agent id, shared iMessage number and join code are
 constants, and the tool token and Keiki API key live in a write-once appSecrets
@@ -152,14 +154,13 @@ Convex features: schema table and index, internal query, HTTP action
 (`convex/keiki.ts`, `convex/http.ts`, `convex/schema.ts`,
 `convex/convex.config.ts`, `convex/followups.ts`).
 
-
-### 2026-11-15 - working tree
+### 2026-11-15 - 5cceecd
 Locked the Keiki secrets bootstrap: the public mutation now stores a value only
 when its SHA-256 matches a hash committed in code, so nobody can claim the tool
 token or API key on a fresh deployment. Convex features: mutation, Web Crypto in
 the default runtime (`convex/keiki.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 4f53847
 Fixed three iOS issues from the cloud-iPhone run. Mic failures on the orb, the
 person page and Reflect now show "I can't hear you here, so try typing" instead
 of the native error, and a failed hold-to-ask opens a text ask field on Home
@@ -169,14 +170,14 @@ entry to Reflect whenever the evening card isn't up. Reads reflections.tonight,
 calls jesse.ask (`src/app/(tabs)/index.tsx`, `src/app/_layout.tsx`,
 `src/app/person/[id].tsx`, `src/app/reflect.tsx`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 51bd690
 Made the app boot and run in Expo Go (SDK 58) as a demo fallback. expo-calendar
 is the only dependency Expo Go doesn't support, so it now loads lazily and only
 outside Expo Go. Inside Expo Go, Add to calendar explains that it needs the
 installed app, while listening, Jesse's answers, voice and every screen keep
 working (`src/lib/actions.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 514d160
 Added a conversation page at /conversation/[id], opened from every conversation
 card on Plans. It shows when and where the conversation was, who was there (each
 person opens their page), Jesse's gist, and the promises, plans, notes, open
@@ -186,21 +187,21 @@ shared component. Reads conversations.get and topics.list
 (`src/app/conversation/[id].tsx`, `src/components/conversation-card.tsx`,
 `src/app/(tabs)/plans.tsx`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - a9e2e69
 The person page now lists "Your conversations" newest first, with the same card
 as Plans (time, kind chip, title, gist and promises). Each card opens the
 conversation page. Jesse's notes moved to the end of the page, after Ready to
 send, Coming up and the conversation history. Reads people.get
 (`src/app/person/[id].tsx`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 0d37afc
 Dropped the "Small but urgent" section from the Ideas tab (it stays on Home) and
 removed its now-unused hooks. The "From conversations" rows in each topic folder
 are now buttons with a chevron and a pressed state: they open that conversation's
 page, or the person's page when the item has no conversation. Reads topics.list
 (`src/app/(tabs)/ideas.tsx`, `src/data/ideas.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 84a7367
 Home is talk-first: a greeting under the orb names the user and today's latest
 conversation ("Hey Poom, how was lunch with Sam?"), Jesse says it out loud once a
 day unless the new Voice on/off chip is off, and a big "Talk with Jesse" button
@@ -210,7 +211,7 @@ conversations.stop (`src/app/(tabs)/index.tsx`, `src/components/greeting.ts`,
 `src/components/sign-in.tsx`, `src/lib/prefs.ts`, `src/lib/sample-conversation.ts`,
 `src/data/hooks.ts`, `assets/audio/sample-conversation.m4a`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 766f06e
 Round-2 polish after the cloud-iPhone run. Once a sample conversation finishes,
 typed answers show again. Voice off now stops answers and the greeting that are
 still on their way. The daily greeting checks the date again when the app comes
@@ -219,7 +220,7 @@ The conversation page shows an end time only when it differs from the start
 (`src/app/(tabs)/index.tsx`, `src/lib/sample-conversation.ts`,
 `src/data/plans.ts`, `src/app/conversation/[id].tsx`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 828dd34
 Final polish. Nobody in the sample clip says the listener's name anymore, and the
 extraction prompt now treats a name used to address the owner as the owner's,
 never as a fact about someone else. Extraction skips a new open item that nearly
@@ -230,19 +231,19 @@ package.json. Convex features: internal mutation, index query
 (`convex/conversations.ts`, `convex/extract.ts`, `src/app/person/[id].tsx`,
 `assets/audio/sample-conversation.m4a`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 1a133b2
 Home has a gear in the top-left that opens /connections, the connectors and MCP
 screen that other threads are building (`src/app/(tabs)/index.tsx`,
 `src/components/icon.tsx`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - a178b97
 Home is now just Jesse: the orb, one warm question ("Hey Poom, how was lunch with
 Sam?" or "how are you feeling?"), the Talk with Jesse button, the Voice chip and
 the Connections gear. Before you forget, the evening card and the demo-seed button
 are gone from Home. The typed ask and the sample conversation still show only
 when there's no mic (`src/app/(tabs)/index.tsx`, `src/components/greeting.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 119963e
 Listening keeps going with the phone locked. The audio session now asks for
 background recording (allowsBackgroundRecording, shouldPlayInBackground) and the
 expo-audio plugin sets enableBackgroundRecording, which adds the Android
@@ -254,7 +255,7 @@ removes any file left behind. Home shows a "Listening · since 2:10 PM" pill tha
 stops listening when tapped (`src/lib/listening.ts`, `src/app/(tabs)/index.tsx`,
 `app.json`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 7523eb4
 The evening check-in notification now asks "Is now a good time?" with two
 actions that also show on a paired Apple Watch: "Yes, let's talk" opens Reflect
 in voice mode, where Jesse says tonight's question out loud first (tap Voice off
@@ -265,6 +266,8 @@ reflection as asked, accepted, snoozed or talked (`src/lib/notifications.ts`,
 `src/app/reflect.tsx`, `src/app/(tabs)/index.tsx`, `convex/reflections.ts`,
 `convex/schema.ts`). Convex features: public mutation with auth and ownership
 check, index query, optional schema fields.
+
+### 2026-11-15 - 2a17039
 Connector infrastructure. One internal `ingest` action takes a normalized event
 (source, kind, occurredAt, people, text) and runs the same rubric extractor as the
 audio path (`extractNotes` in `convex/extract.ts`), so events from calendar,
@@ -278,13 +281,7 @@ source as Live, Sample or Off; sample fixtures under
 action, scheduler, index query, auth-scoped mutations (`convex/integrations/`,
 `convex/connections.ts`, `convex/scenarios.ts`, `src/app/connections.tsx`).
 
-### 2026-11-15 - working tree
-Texts to Jesse become notes. A new Keiki tool, note_message, sends what the user
-tells Jesse over iMessage to the same ingest action as every other source (kind
-text_to_jesse on the live "iMessage with Jesse" connection), so a text like "had
-coffee with Dev, he's moving to Austin" turns into a fact, plans and follow-ups.
-The text itself is never stored. Convex features: HTTP action, internal action
-(`convex/http.ts`, `convex/integrations/ingest.ts`).
+### 2026-11-15 - b319baf
 Jesse now runs its own MCP server, so a user's own Claude can read their Jesse
 notes. It speaks MCP over Streamable HTTP at /mcp from a Convex httpAction:
 JSON-RPC initialize, server/discover, tools/list and tools/call, stateless, with
@@ -300,11 +297,19 @@ they only return Jesse's notes because no raw text is kept. Convex features:
 httpAction, internal query and mutation, index queries (`convex/mcp/*`,
 `convex/http.ts`, `convex/schema.ts`, `src/app/mcp.tsx`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - bc71d62
+Texts to Jesse become notes. A new Keiki tool, note_message, sends what the user
+tells Jesse over iMessage to the same ingest action as every other source (kind
+text_to_jesse on the live "iMessage with Jesse" connection), so a text like "had
+coffee with Dev, he's moving to Austin" turns into a fact, plans and follow-ups.
+The text itself is never stored. Convex features: HTTP action, internal action
+(`convex/http.ts`, `convex/integrations/ingest.ts`).
+
+### 2026-11-15 - 029419a
 The Home greeting drops a trailing "demo" from the username, so the poomdemo
 account says "Hey Poom" (`src/components/greeting.ts`).
 
-### 2026-11-15 - simpler Plans and People
+### 2026-11-15 - aba09c7
 Plans now shows each conversation's takeaways right under it: promises, plans,
 small-but-urgent items and what others owe you, each with one inline action
 (Going / Not now on plans, Add to calendar, Done, and Send follow-up when a
@@ -313,7 +318,11 @@ conversation history. The suggested texts, notes composer and open-items strip
 are gone from it (`src/app/(tabs)/plans.tsx`, `src/app/person/[id].tsx`,
 `src/components/takeaway.tsx`, `src/data/plans.ts`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 70b7e4e
+The Home gear that opens Connections now sits above the title, so taps reach it
+(`src/app/(tabs)/index.tsx`).
+
+### 2026-11-15 - a938170
 Two demo helpers on Connections. On the "iMessage with Jesse" row, Link my
 iMessage creates a link code and opens Messages to Jesse's number with the link
 text prefilled. A Load demo memories card asks for confirmation, then runs
@@ -321,7 +330,7 @@ seed.demo and the Tim, Mom and deck scenarios, so a fresh account fills Plans,
 People and Ideas in one tap. Calls keiki.createLinkCode, seed.demo and
 scenarios.run (`src/app/connections.tsx`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - 7d3c611
 Warm Apricot theme, which Poom picked from three previews: a blush background, a
 coral accent, a peach-to-rose orb, rounded Nunito type, softer and rounder cards
 and softer shadows. All of it comes from one theme layer in the design tokens
@@ -331,7 +340,7 @@ now follow the theme instead of hard-coded lavender, and the Home question uses
 the heading font (`src/theme/tokens.ts`, `src/theme/fonts.ts`,
 `src/components/orb.tsx`, `src/app/reflect.tsx`, `src/components/brain.tsx`).
 
-### 2026-11-15 - working tree
+### 2026-11-15 - cc82c0a
 Jesse is now a capybara instead of an orb, on Home, the Home tab icon and the
 Reflect header. It has four generated poses (idle, blink, talking, happy) and is
 animated with Reanimated. It breathes, sways and blinks every few seconds. While
