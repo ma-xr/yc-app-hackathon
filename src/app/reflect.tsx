@@ -114,8 +114,8 @@ export default function ReflectScreen() {
       if (text) {
         await send(text, true);
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Jesse couldn't hear that.");
+    } catch {
+      setError("I can't hear you here, so try typing.");
     }
   };
 
