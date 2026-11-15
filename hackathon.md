@@ -199,3 +199,13 @@ removed its now-unused hooks. The "From conversations" rows in each topic folder
 are now buttons with a chevron and a pressed state: they open that conversation's
 page, or the person's page when the item has no conversation. Reads topics.list
 (`src/app/(tabs)/ideas.tsx`, `src/data/ideas.ts`).
+
+### 2026-11-15 - working tree
+Home is talk-first: a greeting under the orb names the user and today's latest
+conversation ("Hey Poom, how was lunch with Sam?"), Jesse says it out loud once a
+day unless the new Voice on/off chip is off, and a big "Talk with Jesse" button
+opens Reflect. After a mic failure, "Try a sample conversation" sends a bundled
+44 s TTS clip through conversations.start, extract.processChunk and
+conversations.stop (`src/app/(tabs)/index.tsx`, `src/components/greeting.ts`,
+`src/components/sign-in.tsx`, `src/lib/prefs.ts`, `src/lib/sample-conversation.ts`,
+`src/data/hooks.ts`, `assets/audio/sample-conversation.m4a`).

@@ -12,6 +12,7 @@ import { api } from '../../convex/_generated/api';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { PREF, setPref } from '@/lib/prefs';
 
 type AuthError = Extract<
   SignInWithUsernamePasswordResult | SignUpWithUsernamePasswordResult,
@@ -70,7 +71,9 @@ export function SignIn() {
       mode === 'signIn' ? await signIn({ username, password }) : await signUp({ username, password });
     if (result.status === 'error') {
       setError(errorMessage(result.userError));
+      return;
     }
+    void setPref(PREF.username, username.trim());
   };
 
   const inputStyle = [styles.input, { color: colors.text, borderColor: colors.backgroundSelected }];

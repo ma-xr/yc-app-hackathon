@@ -64,6 +64,10 @@ export function useConversationsRange(from: number, to: number) {
   return useQuery(api.conversations.range, { from, to });
 }
 
+export function useTodayConversations(since: number) {
+  return useQuery(api.conversations.today, { since });
+}
+
 export function useTopics() {
   return useQuery(api.topics.list, {});
 }
