@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ConversationCard } from "@/components/conversation-card";
 import { firstName, relativeDay, time, weekdayDate } from "@/components/format";
 import { Icon } from "@/components/icon";
 import { OrbArt } from "@/components/orb";
@@ -154,41 +155,6 @@ export default function PersonScreen() {
           contentContainerStyle={styles.body}
           keyboardShouldPersistTaps="handled"
         >
-          <SectionLabel>Jesse’s notes on {first}</SectionLabel>
-          <Card style={{ paddingVertical: 4 }}>
-            {person.facts.length === 0 ? (
-              <Text
-                style={[T.bodySmall, { color: C.muted, paddingVertical: 12 }]}
-              >
-                Nothing noted yet. Add a note below.
-              </Text>
-            ) : (
-              person.facts
-                .map((fact, index) => ({ fact, index }))
-                .reverse()
-                .map(({ fact, index }, row) => (
-                  <View key={`${index}-${fact}`}>
-                    {row > 0 ? <Divider /> : null}
-                    <FactRow
-                      text={fact}
-                      onSave={(text) =>
-                        saveFacts(
-                          text.trim()
-                            ? person.facts.map((f, i) =>
-                                i === index ? text.trim() : f,
-                              )
-                            : person.facts.filter((_, i) => i !== index),
-                        )
-                      }
-                    />
-                  </View>
-                ))
-            )}
-          </Card>
-          {error ? (
-            <Text style={[T.meta, { color: C.amberText }]}>{error}</Text>
-          ) : null}
-
           {suggestions.length ? (
             <>
               <SectionLabel>Ready to send</SectionLabel>
@@ -237,30 +203,59 @@ export default function PersonScreen() {
             </>
           ) : null}
 
-          <SectionLabel>Conversations</SectionLabel>
+          <SectionLabel>Your conversations</SectionLabel>
           {conversations.length === 0 ? (
             <Text style={[T.bodySmall, { color: C.muted }]}>
               No conversations noted yet.
             </Text>
           ) : (
             conversations.map((c) => (
-              <View key={c._id} style={{ gap: 8 }}>
-                <Text style={styles.dateSep}>
-                  {weekdayDate(c.startedAt)}
-                  {c.place ? ` · ${c.place}` : ""} · {time(c.startedAt)}
-                </Text>
-                <Card style={{ gap: 8 }}>
-                  {c.gist.map((line) => (
-                    <View key={line} style={styles.gistRow}>
-                      <View style={styles.bullet} />
-                      <Text style={[T.body, { flex: 1 }]}>{line}</Text>
-                    </View>
-                  ))}
-                  <JesseNoteTag />
-                </Card>
-              </View>
+              <ConversationCard
+                key={c._id}
+                showDate
+                conversation={{
+                  ...c,
+                  people: [person],
+                  items: items.filter((i) => i.conversationId === c._id),
+                }}
+              />
             ))
           )}
+
+          <SectionLabel>Jesse’s notes on {first}</SectionLabel>
+          <Card style={{ paddingVertical: 4 }}>
+            {person.facts.length === 0 ? (
+              <Text
+                style={[T.bodySmall, { color: C.muted, paddingVertical: 12 }]}
+              >
+                Nothing noted yet. Add a note below.
+              </Text>
+            ) : (
+              person.facts
+                .map((fact, index) => ({ fact, index }))
+                .reverse()
+                .map(({ fact, index }, row) => (
+                  <View key={`${index}-${fact}`}>
+                    {row > 0 ? <Divider /> : null}
+                    <FactRow
+                      text={fact}
+                      onSave={(text) =>
+                        saveFacts(
+                          text.trim()
+                            ? person.facts.map((f, i) =>
+                                i === index ? text.trim() : f,
+                              )
+                            : person.facts.filter((_, i) => i !== index),
+                        )
+                      }
+                    />
+                  </View>
+                ))
+            )}
+          </Card>
+          {error ? (
+            <Text style={[T.meta, { color: C.amberText }]}>{error}</Text>
+          ) : null}
         </ScrollView>
 
         <View style={styles.composer}>
@@ -395,20 +390,6 @@ const styles = StyleSheet.create({
     backgroundColor: C.accentTint,
     alignItems: "center",
     justifyContent: "center",
-  },
-  dateSep: {
-    fontFamily: F.semibold,
-    fontSize: 12,
-    color: C.muted,
-    textAlign: "center",
-  },
-  gistRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
-  bullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: C.accent,
-    marginTop: 8,
   },
   composer: {
     flexDirection: "row",
