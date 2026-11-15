@@ -1,9 +1,11 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { startOfDay } from '@/components/format';
 import { ForgetCard } from '@/components/forget-card';
+import { displayName, greetingLine } from '@/components/greeting';
 import { Orb } from '@/components/orb';
 import { ReflectionCard } from '@/components/reflection-card';
 import { Button, EmptyCard, Screen, SectionLabel } from '@/components/ui';
@@ -13,10 +15,14 @@ import {
   useNow,
   usePeople,
   useSeedDemo,
+  useTodayConversations,
   useTonightReflection,
 } from '@/data/hooks';
 import { useListening } from '@/lib/listening';
-import { speak, useVoiceInput } from '@/lib/voice';
+import { localDate } from '@/lib/notifications';
+import { getPref, PREF, setPref } from '@/lib/prefs';
+import { useSampleConversation } from '@/lib/sample-conversation';
+import { speak, stopSpeaking, useVoiceInput } from '@/lib/voice';
 import { APP_NAME, C, F, T } from '@/theme/tokens';
 
 const EVENING_HOUR = 17;
@@ -34,6 +40,45 @@ export default function Home() {
   const [said, setSaid] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [question, setQuestion] = useState('');
+  const [micFailed, setMicFailed] = useState(false);
+  const [username, setUsername] = useState<string | null | undefined>(undefined);
+  const [muted, setMuted] = useState<boolean | undefined>(undefined);
+  const today = useTodayConversations(startOfDay(now));
+  const sample = useSampleConversation();
+  const greeted = useRef(false);
+
+  useEffect(() => {
+    void Promise.all([getPref(PREF.username), getPref(PREF.voiceMuted)]).then(([name, mute]) => {
+      setUsername(name);
+      setMuted(mute === '1');
+    });
+  }, []);
+
+  const greeting =
+    cards === undefined || today === undefined || username === undefined
+      ? null
+      : greetingLine(displayName(username), today, cards);
+
+  useEffect(() => {
+    if (greeting === null || muted === undefined || greeted.current) return;
+    greeted.current = true;
+    if (muted) return;
+    const date = localDate();
+    void getPref(PREF.greetedOn)
+      .then(async (last) => {
+        if (last === date) return;
+        await setPref(PREF.greetedOn, date);
+        await speak(greeting);
+      })
+      .catch(() => {});
+  }, [greeting, muted]);
+
+  const toggleMuted = () => {
+    const next = !muted;
+    setMuted(next);
+    void setPref(PREF.voiceMuted, next ? '1' : '0');
+    if (next) void stopSpeaking().catch(() => {});
+  };
 
   const startAsking = async () => {
     if (listening.isListening) return;
@@ -43,6 +88,7 @@ export default function Home() {
     } catch {
       setSaid('I can’t hear you here, so try typing.');
       setTyping(true);
+      setMicFailed(true);
     }
   };
 
@@ -54,7 +100,7 @@ export default function Home() {
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
       setSaid(answer);
-      void speak(answer);
+      if (!muted) void speak(answer).catch(() => {});
     } catch {
       setSaid('Something went wrong. Try asking again.');
     }
@@ -75,6 +121,7 @@ export default function Home() {
     } catch {
       setSaid('I can’t hear you here, so try typing.');
       setTyping(true);
+      setMicFailed(true);
       return;
     }
     if (!spoken.trim()) {
@@ -87,9 +134,17 @@ export default function Home() {
   const isEvening = evening === '1' || new Date(now).getHours() >= EVENING_HOUR;
   const showReflection = isEvening && reflection && reflection.summary === null;
 
+  const listenFailed =
+    !listening.isListening && listening.status !== null && listening.status !== 'Noting what mattered…';
+  const showSample = micFailed || listenFailed || sample.status !== null;
+
   const saysLine = listening.isListening
     ? (listening.status ?? 'Listening…')
-    : said
+    : sample.status
+      ? sample.status
+      : listenFailed && !said
+      ? 'I can’t hear you here, so try typing.'
+      : said
       ? said
       : cards === undefined
       ? '…'
@@ -99,9 +154,20 @@ export default function Home() {
 
   return (
     <Screen>
-      <Text style={[T.appName, { textAlign: 'center' }]} accessibilityRole="header">
-        {APP_NAME}
-      </Text>
+      <View style={styles.topRow}>
+        <Text style={[T.appName, { textAlign: 'center' }]} accessibilityRole="header">
+          {APP_NAME}
+        </Text>
+        <Pressable
+          onPress={toggleMuted}
+          hitSlop={8}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: !muted }}
+          accessibilityLabel="Jesse's voice"
+          style={[styles.voiceChip, muted && styles.voiceChipOff]}>
+          <Text style={[styles.voiceChipText, muted && { color: C.muted }]}>{muted ? 'Voice off' : 'Voice on'}</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.orbArea}>
         <Orb
@@ -110,6 +176,9 @@ export default function Home() {
           onLongPress={() => void startAsking()}
           onPressOut={() => void finishAsking()}
         />
+        <Text style={styles.greeting} accessibilityRole="header">
+          {greeting ?? ' '}
+        </Text>
         <View style={styles.says} accessibilityLiveRegion="polite">
           <Text style={[T.label, { textAlign: 'center' }]}>
             {listening.isListening ? 'Jesse is listening' : 'Jesse says'}
@@ -122,7 +191,7 @@ export default function Home() {
             {saysLine}
           </Text>
         </View>
-        {typing ? (
+        {typing || listenFailed ? (
           <View style={styles.askRow}>
             <TextInput
               style={styles.askInput}
@@ -137,19 +206,29 @@ export default function Home() {
             <Button label="Ask" compact onPress={sendTyped} />
           </View>
         ) : null}
+        {showSample ? (
+          <Pressable
+            onPress={() => void sample.run()}
+            disabled={sample.running}
+            hitSlop={8}
+            accessibilityRole="link"
+            style={styles.sampleLink}>
+            <Text style={[styles.sampleText, sample.running && { color: C.muted }]}>
+              {sample.running ? 'Listening to the sample…' : 'Try a sample conversation'}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {showReflection ? (
         <ReflectionCard question={reflection.question} />
       ) : (
         <Button
-          label="Talk to Jesse"
+          label="Talk with Jesse"
           icon="sparkle"
-          variant="outline"
-          compact
-          accessibilityLabel="Reflect with Jesse"
+          accessibilityLabel="Talk with Jesse"
           onPress={() => router.push('/reflect')}
-          style={styles.reflectEntry}
+          style={styles.talkButton}
         />
       )}
 
@@ -188,6 +267,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  reflectEntry: { alignSelf: 'center', marginTop: 4 },
+  talkButton: { minHeight: 56, borderRadius: 18, marginTop: 4 },
+  topRow: { justifyContent: 'center' },
+  voiceChip: {
+    position: 'absolute',
+    right: 0,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.accent,
+    backgroundColor: C.accentTint,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  voiceChipOff: { borderColor: C.chipBorder, backgroundColor: C.surface },
+  voiceChipText: { fontFamily: F.semibold, fontSize: 12, color: C.accentDeep },
+  greeting: {
+    fontFamily: F.bold,
+    fontSize: 22,
+    lineHeight: 28,
+    color: C.ink,
+    textAlign: 'center',
+    marginTop: -16,
+    marginBottom: 18,
+    paddingHorizontal: 12,
+    maxWidth: 360,
+  },
+  sampleLink: { marginTop: 12 },
+  sampleText: { fontFamily: F.semibold, fontSize: 14, color: C.accent, textDecorationLine: 'underline' },
   saysText: { fontFamily: F.medium, fontSize: 16, lineHeight: 23, color: C.inkSoft, textAlign: 'center' },
 });
