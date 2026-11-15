@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from 'convex/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { api } from '../../convex/_generated/api';
 import type { Doc, Id } from '../../convex/_generated/dataModel';
@@ -13,7 +14,16 @@ export type Conversation = Doc<'conversations'>;
 export type ItemWithPerson = Item & { person: Person | null };
 
 export function useNow() {
-  const [now] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const timer = setInterval(tick, 60_000);
+    const sub = AppState.addEventListener('change', (state) => state === 'active' && tick());
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, []);
   return now;
 }
 

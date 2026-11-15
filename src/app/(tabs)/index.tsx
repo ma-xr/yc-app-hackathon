@@ -1,3 +1,4 @@
+import { useAuthActions } from '@convex-dev/auth/react';
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
@@ -5,7 +6,13 @@ import { ForgetCard } from '@/components/forget-card';
 import { Orb } from '@/components/orb';
 import { ReflectionCard } from '@/components/reflection-card';
 import { Button, EmptyCard, Screen, SectionLabel } from '@/components/ui';
-import { useBeforeYouForget, useNow, useSeedDemo, useTonightReflection } from '@/data/hooks';
+import {
+  useBeforeYouForget,
+  useNow,
+  usePeople,
+  useSeedDemo,
+  useTonightReflection,
+} from '@/data/hooks';
 import { useListening } from '@/lib/listening';
 import { APP_NAME, C, F, T } from '@/theme/tokens';
 
@@ -17,6 +24,8 @@ export default function Home() {
   const listening = useListening();
   const cards = useBeforeYouForget();
   const seedDemo = useSeedDemo();
+  const people = usePeople();
+  const { signOut } = useAuthActions();
   const reflection = useTonightReflection();
   const isEvening = evening === '1' || new Date(now).getHours() >= EVENING_HOUR;
 
@@ -63,9 +72,13 @@ export default function Home() {
       ) : (
         <View style={{ gap: 12 }}>
           <EmptyCard>Nothing to remember right now. You’re all caught up.</EmptyCard>
-          <Button label="Load demo memories" variant="outline" onPress={() => void seedDemo({})} />
+          {people?.length === 0 ? (
+            <Button label="Load demo memories" variant="outline" onPress={() => void seedDemo({})} />
+          ) : null}
         </View>
       )}
+
+      <Button label="Sign out" variant="ghost" onPress={() => void signOut()} style={{ marginTop: 16 }} />
     </Screen>
   );
 }
