@@ -1,7 +1,5 @@
-import { makeFunctionReference } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
 
 const OPENAI = "https://api.openai.com/v1";
@@ -10,8 +8,6 @@ const EXTRACT_MODEL = process.env.OPENAI_EXTRACT_MODEL ?? "gpt-5-mini";
 const MAX_WORDS = 12;
 const KINDS = ["you_owe", "they_owe", "plan", "urgent", "fact", "question", "takeaway"] as const;
 type Kind = (typeof KINDS)[number];
-
-const planForItem = makeFunctionReference<"mutation", { itemId: Id<"items"> }>("followups:planForItem");
 
 const RUBRIC = `You are Jesse, a memory companion that listens to the phone owner's conversations and keeps only what a thoughtful friend would want to remember. You never keep the words themselves: write every note in your own voice, never as a quote.
 
@@ -240,11 +236,7 @@ export const processChunk = action({
       const planIds = await ctx.runMutation(internal.conversations.applyExtraction, { conversationId, extraction });
       applied = true;
       for (const itemId of planIds) {
-        try {
-          await ctx.scheduler.runAfter(0, planForItem, { itemId });
-        } catch {
-          console.warn("followups.planForItem is not deployed yet; the follow-up sweep will pick this item up");
-        }
+        await ctx.scheduler.runAfter(0, internal.followups.planForItem, { itemId });
       }
       return null;
     } finally {
