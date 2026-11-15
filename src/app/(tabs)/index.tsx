@@ -3,7 +3,7 @@ import { type Href, router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { startOfDay } from '@/components/format';
+import { startOfDay, time } from '@/components/format';
 import { Icon } from '@/components/icon';
 import { displayName, greetingLine } from '@/components/greeting';
 import { Orb } from '@/components/orb';
@@ -36,6 +36,10 @@ export default function Home() {
   const sample = useSampleConversation();
   const greetedOn = useRef<string | null>(null);
   const mutedRef = useRef(false);
+  const listeningRef = useRef(false);
+  useEffect(() => {
+    listeningRef.current = listening.isListening;
+  }, [listening.isListening]);
   const todayKey = localDate(new Date(now));
 
   useEffect(() => {
@@ -55,7 +59,7 @@ export default function Home() {
     if (muted) return;
     void getPref(PREF.greetedOn)
       .then(async (last) => {
-        if (last === todayKey || mutedRef.current) return;
+        if (last === todayKey || mutedRef.current || listeningRef.current) return;
         await setPref(PREF.greetedOn, todayKey);
         await speak(greeting);
       })
@@ -158,6 +162,18 @@ export default function Home() {
         </Pressable>
       </View>
 
+      {listening.isListening && listening.startedAt !== null ? (
+        <Pressable
+          onPress={() => void listening.stop()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Listening since ${time(listening.startedAt)}. Tap to stop.`}
+          style={styles.listeningPill}>
+          <View style={styles.listeningDot} />
+          <Text style={styles.listeningPillText}>Listening · since {time(listening.startedAt)}</Text>
+        </Pressable>
+      ) : null}
+
       <View style={styles.orbArea}>
         <Orb
           listening={listening.isListening}
@@ -256,6 +272,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
+  listeningPill: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    backgroundColor: C.accentTint,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginTop: 8,
+  },
+  listeningDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.accent },
+  listeningPillText: { fontFamily: F.semibold, fontSize: 12, lineHeight: 16, color: C.accentDeep },
   voiceChipOff: { borderColor: C.chipBorder, backgroundColor: C.surface },
   voiceChipText: { fontFamily: F.semibold, fontSize: 12, color: C.accentDeep },
   greeting: {
