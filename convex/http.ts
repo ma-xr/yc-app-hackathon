@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
+import { mcpOther, mcpPost } from "./mcp/server";
 
 const http = httpRouter();
 
@@ -82,5 +83,9 @@ http.route({
     return json({ error: "unknown_tool" }, 404);
   }),
 });
+
+http.route({ path: "/mcp", method: "POST", handler: mcpPost });
+http.route({ path: "/mcp", method: "GET", handler: mcpOther });
+http.route({ path: "/mcp", method: "DELETE", handler: mcpOther });
 
 export default http;
