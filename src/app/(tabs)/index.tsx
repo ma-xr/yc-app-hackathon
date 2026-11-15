@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   voiceChipOff: { borderColor: C.chipBorder, backgroundColor: C.surface },
   voiceChipText: { fontFamily: F.semibold, fontSize: 12, color: C.accentDeep },
   greeting: {
-    fontFamily: F.bold,
+    fontFamily: F.display,
     fontSize: 22,
     lineHeight: 28,
     color: C.ink,

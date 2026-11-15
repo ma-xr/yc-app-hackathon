@@ -320,3 +320,13 @@ text prefilled. A Load demo memories card asks for confirmation, then runs
 seed.demo and the Tim, Mom and deck scenarios, so a fresh account fills Plans,
 People and Ideas in one tap. Calls keiki.createLinkCode, seed.demo and
 scenarios.run (`src/app/connections.tsx`).
+
+### 2026-11-15 - working tree
+Warm Apricot theme, which Poom picked from three previews: a blush background, a
+coral accent, a peach-to-rose orb, rounded Nunito type, softer and rounder cards
+and softer shadows. All of it comes from one theme layer in the design tokens
+(colors, fonts, radii, shadows, orb gradient). Linen and Sage stay available
+through EXPO_PUBLIC_THEME. The orb glow, the Reflect screen and the Ideas brain
+now follow the theme instead of hard-coded lavender, and the Home question uses
+the heading font (`src/theme/tokens.ts`, `src/theme/fonts.ts`,
+`src/components/orb.tsx`, `src/app/reflect.tsx`, `src/components/brain.tsx`).

@@ -41,9 +41,9 @@ function Sheen({ size }: { size: number }) {
           <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
         </LinearGradient>
         <LinearGradient id="sheenB" x1="1" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#FFB8E6" stopOpacity="0" />
-          <Stop offset="0.5" stopColor="#FFB8E6" stopOpacity="0.3" />
-          <Stop offset="1" stopColor="#FFB8E6" stopOpacity="0" />
+          <Stop offset="0" stopColor={ORB_STOPS[1].color} stopOpacity="0" />
+          <Stop offset="0.5" stopColor={ORB_STOPS[1].color} stopOpacity="0.3" />
+          <Stop offset="1" stopColor={ORB_STOPS[1].color} stopOpacity="0" />
         </LinearGradient>
         <RadialGradient id="highlight" cx="50%" cy="50%" r="50%">
           <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.85" />
@@ -136,8 +136,8 @@ export function Orb({
         <Svg width={haloSize} height={haloSize}>
           <Defs>
             <RadialGradient id="halo" cx="50%" cy="50%" r="50%">
-              <Stop offset="0" stopColor="rgb(123,108,240)" stopOpacity="0.28" />
-              <Stop offset="1" stopColor="rgb(123,108,240)" stopOpacity="0" />
+              <Stop offset="0" stopColor={ORB_STOPS[2].color} stopOpacity="0.28" />
+              <Stop offset="1" stopColor={ORB_STOPS[2].color} stopOpacity="0" />
             </RadialGradient>
           </Defs>
           <Circle cx={haloSize / 2} cy={haloSize / 2} r={haloSize / 2} fill="url(#halo)" />
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   orb: {
     overflow: 'hidden',
     ...Platform.select({
-      web: { boxShadow: '0 28px 60px rgba(90,72,214,0.38)' },
+      web: { boxShadow: `0 28px 60px ${C.accent}61` },
       default: {
         shadowColor: C.accent,
         shadowOpacity: 0.38,
