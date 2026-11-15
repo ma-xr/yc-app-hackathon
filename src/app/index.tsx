@@ -1,5 +1,6 @@
+import { useAuthActions } from '@convex-dev/auth/react';
 import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedIcon } from '@/components/animated-icon';
@@ -29,6 +30,7 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  const { signOut } = useAuthActions();
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -54,6 +56,10 @@ export default function HomeScreen() {
             hint={<ThemedText type="code">npm run reset-project</ThemedText>}
           />
         </ThemedView>
+
+        <Pressable onPress={() => void signOut()}>
+          <ThemedText type="link">Sign out</ThemedText>
+        </Pressable>
 
         {Platform.OS === 'web' && <WebBadge />}
       </SafeAreaView>
