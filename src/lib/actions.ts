@@ -1,7 +1,7 @@
-import * as Calendar from 'expo-calendar';
+import { isRunningInExpoGo } from 'expo';
 import * as Linking from 'expo-linking';
 import * as SMS from 'expo-sms';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -21,7 +21,12 @@ export async function addToCalendar(opts: {
   notes?: string;
   location?: string;
 }): Promise<string | undefined> {
+  if (isRunningInExpoGo()) {
+    Alert.alert('Needs the full Jesse app', 'Adding to your calendar works in the installed app, not in Expo Go.');
+    return undefined;
+  }
   try {
+    const Calendar = await import('expo-calendar');
     const { granted } = await Calendar.requestCalendarPermissions();
     if (!granted) return undefined;
 

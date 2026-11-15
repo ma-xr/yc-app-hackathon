@@ -168,3 +168,10 @@ so its composer stays above the keyboard, and Home shows a small "Talk to Jesse"
 entry to Reflect whenever the evening card isn't up. Reads reflections.tonight,
 calls jesse.ask (`src/app/(tabs)/index.tsx`, `src/app/_layout.tsx`,
 `src/app/person/[id].tsx`, `src/app/reflect.tsx`).
+
+### 2026-11-15 - working tree
+Made the app boot and run in Expo Go (SDK 58) as a demo fallback. expo-calendar
+is the only dependency Expo Go doesn't support, so it now loads lazily and only
+outside Expo Go. Inside Expo Go, Add to calendar explains that it needs the
+installed app, while listening, Jesse's answers, voice and every screen keep
+working (`src/lib/actions.ts`).
