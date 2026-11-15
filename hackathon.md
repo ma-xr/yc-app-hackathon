@@ -234,3 +234,22 @@ package.json. Convex features: internal mutation, index query
 Home has a gear in the top-left that opens /connections, the connectors and MCP
 screen that other threads are building (`src/app/(tabs)/index.tsx`,
 `src/components/icon.tsx`).
+
+### 2026-11-15 - working tree
+Home is now just Jesse: the orb, one warm question ("Hey Poom, how was lunch with
+Sam?" or "how are you feeling?"), the Talk with Jesse button, the Voice chip and
+the Connections gear. Before you forget, the evening card and the demo-seed button
+are gone from Home. The typed ask and the sample conversation still show only
+when there's no mic (`src/app/(tabs)/index.tsx`, `src/components/greeting.ts`).
+
+### 2026-11-15 - working tree
+Listening keeps going with the phone locked. The audio session now asks for
+background recording (allowsBackgroundRecording, shouldPlayInBackground) and the
+expo-audio plugin sets enableBackgroundRecording, which adds the Android
+microphone foreground service; iOS already had the audio background mode.
+Chunks roll over on a 5 s check once 45 s have passed, and again when the app
+comes back to the foreground, so a throttled timer can't stall them. Each chunk
+file is deleted after upload even when the upload fails, and stop or unmount
+removes any file left behind. Home shows a "Listening · since 2:10 PM" pill that
+stops listening when tapped (`src/lib/listening.ts`, `src/app/(tabs)/index.tsx`,
+`app.json`).

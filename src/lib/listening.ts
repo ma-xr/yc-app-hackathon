@@ -8,19 +8,21 @@ import {
 } from 'expo-audio';
 import { File } from 'expo-file-system';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 
 export type Listening = {
   isListening: boolean;
+  startedAt: number | null;
   status: string | null;
   start: () => void | Promise<void>;
   stop: () => void | Promise<void>;
 };
 
 const CHUNK_MS = 45_000;
+const TICK_MS = 5_000;
 
 const SPEECH: RecordingOptions = {
   ...RecordingPresets.HIGH_QUALITY,
@@ -29,18 +31,21 @@ const SPEECH: RecordingOptions = {
   bitRate: 48000,
 };
 
-async function readAndDiscard(uri: string) {
-  if (Platform.OS === 'web') {
-    const audio = await (await fetch(uri)).arrayBuffer();
-    URL.revokeObjectURL(uri);
-    return audio;
-  }
-  const file = new File(uri);
+function discard(uri: string | null) {
+  if (!uri) return;
   try {
-    return await file.arrayBuffer();
-  } finally {
+    if (Platform.OS === 'web') {
+      URL.revokeObjectURL(uri);
+      return;
+    }
+    const file = new File(uri);
     if (file.exists) file.delete();
-  }
+  } catch {}
+}
+
+async function read(uri: string) {
+  if (Platform.OS === 'web') return (await fetch(uri)).arrayBuffer();
+  return new File(uri).arrayBuffer();
 }
 
 export function useListening(): Listening {
@@ -51,11 +56,14 @@ export function useListening(): Listening {
 
   const [conversationId, setConversationId] = useState<Id<'conversations'> | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
   const [isFinishing, setIsFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const busy = useRef(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const rotating = useRef<Promise<void>>(Promise.resolve());
+  const chunkStartedAt = useRef(0);
+  const active = useRef<Id<'conversations'> | null>(null);
   const inFlight = useRef(new Set<Promise<unknown>>());
 
   const conversation = useQuery(api.conversations.get, conversationId ? { conversationId } : 'skip');
@@ -66,18 +74,37 @@ export function useListening(): Listening {
     async (id: Id<'conversations'>, again: boolean) => {
       await recorder.stop();
       const uri = recorder.uri;
-      if (again) {
-        await recorder.prepareToRecordAsync();
-        recorder.record();
+      try {
+        if (again) {
+          await recorder.prepareToRecordAsync();
+          recorder.record();
+          chunkStartedAt.current = Date.now();
+        }
+      } finally {
+        if (uri) {
+          const sent = read(uri)
+            .then((audio) => processChunk({ conversationId: id, audio }))
+            .catch(report)
+            .finally(() => discard(uri));
+          inFlight.current.add(sent);
+          void sent.finally(() => inFlight.current.delete(sent));
+        }
       }
-      if (!uri) return;
-      const audio = await readAndDiscard(uri);
-      const sent = processChunk({ conversationId: id, audio }).catch(report);
-      inFlight.current.add(sent);
-      void sent.finally(() => inFlight.current.delete(sent));
     },
     [processChunk, recorder, report],
   );
+
+  const rollIfDue = useCallback(() => {
+    const id = active.current;
+    if (id === null || Date.now() - chunkStartedAt.current < CHUNK_MS) return;
+    chunkStartedAt.current = Date.now();
+    rotating.current = rotating.current.then(() => (active.current === id ? takeChunk(id, true) : undefined)).catch(report);
+  }, [report, takeChunk]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => state === 'active' && rollIfDue());
+    return () => sub.remove();
+  }, [rollIfDue]);
 
   const start = useCallback(async () => {
     if (busy.current) return;
@@ -90,26 +117,35 @@ export function useListening(): Listening {
         busy.current = false;
         return;
       }
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        allowsBackgroundRecording: true,
+      });
       const id = await startConversation({});
       setConversationId(id);
       await recorder.prepareToRecordAsync();
       recorder.record();
+      const now = Date.now();
+      chunkStartedAt.current = now;
+      active.current = id;
+      setStartedAt(now);
       setIsListening(true);
-      timer.current = setInterval(() => {
-        rotating.current = rotating.current.then(() => takeChunk(id, true)).catch(report);
-      }, CHUNK_MS);
+      timer.current = setInterval(rollIfDue, TICK_MS);
     } catch (e) {
       busy.current = false;
       report(e);
     }
-  }, [recorder, report, startConversation, takeChunk]);
+  }, [recorder, report, rollIfDue, startConversation]);
 
   const stop = useCallback(async () => {
     if (!busy.current || conversationId === null || !isListening) return;
     if (timer.current) clearInterval(timer.current);
     timer.current = null;
+    active.current = null;
     setIsListening(false);
+    setStartedAt(null);
     setIsFinishing(true);
     try {
       await rotating.current;
@@ -118,18 +154,29 @@ export function useListening(): Listening {
     } catch (e) {
       report(e);
     } finally {
+      discard(recorder.uri);
       await stopConversation({ conversationId }).catch(report);
       await setAudioModeAsync({ allowsRecording: false }).catch(report);
       setIsFinishing(false);
       busy.current = false;
     }
-  }, [conversationId, isListening, report, stopConversation, takeChunk]);
+  }, [conversationId, isListening, recorder, report, stopConversation, takeChunk]);
 
   useEffect(
     () => () => {
       if (timer.current) clearInterval(timer.current);
+      if (active.current === null) return;
+      active.current = null;
+      void (async () => {
+        try {
+          await recorder.stop();
+        } catch {}
+        try {
+          discard(recorder.uri);
+        } catch {}
+      })();
     },
-    [],
+    [recorder],
   );
 
   let status: string | null = null;
@@ -142,5 +189,5 @@ export function useListening(): Listening {
     status = 'Noting what mattered…';
   }
 
-  return { isListening, status, start, stop };
+  return { isListening, startedAt, status, start, stop };
 }
