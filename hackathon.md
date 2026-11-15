@@ -285,3 +285,17 @@ text_to_jesse on the live "iMessage with Jesse" connection), so a text like "had
 coffee with Dev, he's moving to Austin" turns into a fact, plans and follow-ups.
 The text itself is never stored. Convex features: HTTP action, internal action
 (`convex/http.ts`, `convex/integrations/ingest.ts`).
+Jesse now runs its own MCP server, so a user's own Claude can read their Jesse
+notes. It speaks MCP over Streamable HTTP at /mcp from a Convex httpAction:
+JSON-RPC initialize, server/discover, tools/list and tools/call, stateless, with
+JSON responses, for protocol versions 2025-03-26 through 2026-07-28. Each user
+mints a personal access token in the app under "Connect your Claude". The app
+shows it once, stores only its SHA-256 hash, and lets the user revoke it. Scopes
+are read:memory and, optionally, write:notes. Requests without a valid token get
+a 401, and every tool is scoped to the token's owner. The tools are
+search_memory, list_open_promises, list_followups, get_person,
+recent_conversations, get_goals_and_concerns and add_note (write:notes only).
+They read the live tables, so an edit in the app shows up in the next call, and
+they only return Jesse's notes because no raw text is kept. Convex features:
+httpAction, internal query and mutation, index queries (`convex/mcp/*`,
+`convex/http.ts`, `convex/schema.ts`, `src/app/mcp.tsx`).
