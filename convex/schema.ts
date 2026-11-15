@@ -42,6 +42,8 @@ export const eventSource = v.union(
 
 export const connectionMode = v.union(v.literal("live"), v.literal("sample"), v.literal("off"));
 
+export const mcpScope = v.union(v.literal("read:memory"), v.literal("write:notes"));
+
 export default defineSchema({
   users: defineTable({}),
 
@@ -174,4 +176,16 @@ export default defineSchema({
     key: v.string(),
     value: v.string(),
   }).index("by_key", ["key"]),
+
+  mcpTokens: defineTable({
+    ownerId: v.id("users"),
+    label: v.string(),
+    tokenHash: v.string(),
+    prefix: v.string(),
+    scopes: v.array(mcpScope),
+    lastUsedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_ownerId_and_revokedAt", ["ownerId", "revokedAt"])
+    .index("by_tokenHash", ["tokenHash"]),
 });
