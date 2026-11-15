@@ -23,8 +23,8 @@ export function useSampleConversation() {
   const [status, setStatus] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
 
-  const run = async () => {
-    if (running) return;
+  const run = async (): Promise<string | null> => {
+    if (running) return null;
     setRunning(true);
     setStatus('Jesse is listening to a sample conversation…');
     try {
@@ -35,10 +35,11 @@ export function useSampleConversation() {
       } finally {
         await stopConversation({ conversationId });
       }
-      setStatus('Done. Here’s what Jesse caught from the sample.');
+      return 'Done. Here’s what Jesse caught from the sample.';
     } catch {
-      setStatus('Jesse couldn’t listen to the sample just now. Try again in a moment.');
+      return 'Jesse couldn’t listen to the sample just now. Try again in a moment.';
     } finally {
+      setStatus(null);
       setRunning(false);
     }
   };
