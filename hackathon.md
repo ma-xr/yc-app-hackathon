@@ -278,6 +278,13 @@ source as Live, Sample or Off; sample fixtures under
 action, scheduler, index query, auth-scoped mutations (`convex/integrations/`,
 `convex/connections.ts`, `convex/scenarios.ts`, `src/app/connections.tsx`).
 
+### 2026-11-15 - working tree
+Texts to Jesse become notes. A new Keiki tool, note_message, sends what the user
+tells Jesse over iMessage to the same ingest action as every other source (kind
+text_to_jesse on the live "iMessage with Jesse" connection), so a text like "had
+coffee with Dev, he's moving to Austin" turns into a fact, plans and follow-ups.
+The text itself is never stored. Convex features: HTTP action, internal action
+(`convex/http.ts`, `convex/integrations/ingest.ts`).
 Jesse now runs its own MCP server, so a user's own Claude can read their Jesse
 notes. It speaks MCP over Streamable HTTP at /mcp from a Convex httpAction:
 JSON-RPC initialize, server/discover, tools/list and tools/call, stateless, with
