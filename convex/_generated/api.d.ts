@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as conversations from "../conversations.js";
 import type * as crons from "../crons.js";
+import type * as extract from "../extract.js";
 import type * as followups from "../followups.js";
 import type * as http from "../http.js";
 import type * as items from "../items.js";
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   conversations: typeof conversations;
   crons: typeof crons;
+  extract: typeof extract;
   followups: typeof followups;
   http: typeof http;
   items: typeof items;
