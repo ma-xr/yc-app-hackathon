@@ -69,3 +69,8 @@ call action. Convex features: scheduler (runAfter, runAt), crons, HTTP actions,
 internal functions, typed env (`convex/followups.ts`, `convex/keiki.ts`,
 `convex/http.ts`, `convex/crons.ts`, `convex/convex.config.ts`,
 `src/lib/actions.ts`).
+
+### 2026-11-15 - working tree
+Extraction now hands every new promise or dated item to the follow-ups planner
+through a typed internal reference, so a suggested text is planned as soon as a
+conversation is processed (`convex/extract.ts`).
