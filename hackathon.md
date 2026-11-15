@@ -44,6 +44,18 @@ people, conversations, topics and urgent items for the signed-in user
 `convex/lib/auth.ts`).
 
 ### 2026-11-15 - working tree
+Replaced the starter screens with Jesse's four tabs (Home, Plans, People,
+Ideas) behind the existing Convex Auth gate, with a custom tab bar, the design
+tokens and the Bricolage Grotesque + Inter fonts. Home is Jesse: an SVG orb
+with idle and listening animations that respect Reduce Motion, a "Jesse says"
+line, Tonight's reflection in the evening, and up to three "Before you forget"
+cards read live from the ranked open items, each with its action inline (Text,
+Add to calendar, Done, with an optimistic update). Convex features: reactive
+queries, mutations, optimistic updates (`src/app/_layout.tsx`,
+`src/app/(tabs)/index.tsx`, `src/components/orb.tsx`,
+`src/components/forget-card.tsx`, `src/data/hooks.ts`, `src/theme/tokens.ts`).
+
+### 2026-11-15 - working tree
 Added listening. A `useListening` hook records the conversation in 45-second
 chunks with expo-audio and uploads each chunk to Convex file storage. An action
 transcribes the chunk with speaker labels, deletes the audio, and asks an LLM

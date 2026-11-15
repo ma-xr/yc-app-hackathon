@@ -1,19 +1,31 @@
 import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { Authenticated, AuthLoading, Unauthenticated } from 'convex/react';
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DefaultTheme, ThemeProvider } from 'expo-router';
+import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { useEffect } from 'react';
 
 import { api } from '../../convex/_generated/api';
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
 import { SignIn } from '@/components/sign-in';
 import { authStorage, convex } from '@/lib/convex';
+import { useEveningCheckIn } from '@/lib/notifications';
+import { useJesseFonts } from '@/theme/fonts';
+import { C } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+const theme = {
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, background: C.bg, card: C.surface, primary: C.accent, text: C.ink },
+};
+
+export default function RootLayout() {
+  const fontsReady = useJesseFonts();
+  useEffect(() => {
+    if (fontsReady) SplashScreen.hideAsync();
+  }, [fontsReady]);
+  if (!fontsReady) return null;
+
   return (
     <ConvexAuthProvider
       client={convex}
@@ -24,16 +36,25 @@ export default function TabLayout() {
         signOut: api.auth.signOut,
         isAuthenticated: api.auth.isAuthenticated,
       }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AnimatedSplashOverlay />
+      <ThemeProvider value={theme}>
         <AuthLoading>{null}</AuthLoading>
         <Unauthenticated>
           <SignIn />
         </Unauthenticated>
         <Authenticated>
-          <AppTabs />
+          <SignedInApp />
         </Authenticated>
       </ThemeProvider>
     </ConvexAuthProvider>
+  );
+}
+
+function SignedInApp() {
+  useEveningCheckIn();
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="reflect" options={{ presentation: 'modal' }} />
+    </Stack>
   );
 }
