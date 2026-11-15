@@ -356,3 +356,11 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - Swapped Jesse's capybara art to Poom's pick, "soft clay 3D". Idle, blink, talk and happy come from one base image; the expression poses were generated as edits of it and only their face regions were blended onto idle, so ears, body and framing match frame to frame.
 - Added a 96px `icon.png` that `OrbArt` uses for idle at 64px and below (tab icon, Reflect header). Animation code is unchanged.
 - Verified: tsc and expo lint clean; Home and Reflect rendered on Expo web.
+
+## Always-on Jesse and the abstract clay capybara (YCAP-9)
+
+- Home no longer has a "Talk with Jesse" button. The capybara sits in the centre with the day's question under it and a small status pill: "Say “Hi Jesse” to start", "Listening", "Thinking…" or "Jesse is talking".
+- New `src/lib/always-on.ts` records rolling 6-second chunks with expo-audio and transcribes each one through the existing `jesse.transcribe` action, so it works in Expo Go with no wake-word module. Saying "Hi Jesse" or "Hey Jesse" starts a conversation, and every following chunk goes to the existing `extract.processChunk` ingest. After about 48 seconds of silence it closes the conversation and goes back to waiting.
+- `src/lib/wake.ts` holds the wake and address rules: it fuzzy-matches the name (Jessie, Jessy, Jess and similar) and only treats an utterance as addressed when it starts with the name, or has "Jesse," followed by a question or request. Only then does Jesse answer through `jesse.ask` and TTS. Recording pauses while Jesse speaks so it never hears itself.
+- New capybara art: a rounder, simpler soft clay figure with dot eyes and tiny ears. Idle, blink, talk and happy come from one base image, with only the face blended onto idle, plus the 96px tab icon.
+- Verified on Expo web with a fake microphone playing "Hey Jesse, what's on my plate tomorrow?": wake, Listening, the spoken answer and the status pill all worked end to end. tsc and expo lint are clean.
