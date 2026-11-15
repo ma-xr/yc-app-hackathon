@@ -2,11 +2,45 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { env, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { type ActionCtx, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 
 const CODE_TTL = 15 * 60 * 1000;
 const DAY = 24 * 60 * 60 * 1000;
 const KEIKI_HOST = "https://onkeiki.com";
+const KEIKI_AGENT_ID = "6c5f414b-1500-46f9-badf-15c9586016ec";
+const KEIKI_LINE_NUMBER = "+17796251378";
+const KEIKI_JOIN_CODE = "W7LY8X";
+const secretKey = v.union(v.literal("KEIKI_TOOL_SECRET"), v.literal("KEIKI_API_KEY"));
+
+export const bootstrapSecrets = mutation({
+  args: { secrets: v.array(v.object({ key: secretKey, value: v.string() })) },
+  returns: v.array(v.object({ key: v.string(), written: v.boolean() })),
+  handler: async (ctx, { secrets }) => {
+    const results = [];
+    for (const { key, value } of secrets) {
+      const existing = await ctx.db
+        .query("appSecrets")
+        .withIndex("by_key", (q) => q.eq("key", key))
+        .unique();
+      const written = existing === null && value.trim().length > 0;
+      if (written) await ctx.db.insert("appSecrets", { key, value: value.trim() });
+      results.push({ key, written });
+    }
+    return results;
+  },
+});
+
+export const secret = internalQuery({
+  args: { key: secretKey },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, { key }) => {
+    const row = await ctx.db
+      .query("appSecrets")
+      .withIndex("by_key", (q) => q.eq("key", key))
+      .unique();
+    return row?.value ?? null;
+  },
+});
 
 export function normalizeHandle(handle: string): string {
   const trimmed = handle.trim().toLowerCase();
@@ -25,8 +59,8 @@ export const linkInfo = query({
     handleHint: v.union(v.string(), v.null()),
   }),
   handler: async (ctx) => {
-    const number = env.KEIKI_LINE_NUMBER ?? null;
-    const joinCode = env.KEIKI_JOIN_CODE ?? null;
+    const number = KEIKI_LINE_NUMBER;
+    const joinCode = KEIKI_JOIN_CODE;
     const ownerId = await getAuthUserId(ctx);
     if (ownerId === null) return { number, joinCode, linked: false, handleHint: null };
     const link = await ctx.db
@@ -55,9 +89,8 @@ export const createLinkCode = mutation({
     } else {
       await ctx.db.patch(link._id, { code, codeExpiresAt });
     }
-    const joinCode = env.KEIKI_JOIN_CODE;
-    const text = joinCode ? `hey jesse, link ${code} (K-${joinCode})` : `hey jesse, link ${code}`;
-    return { code, text, number: env.KEIKI_LINE_NUMBER ?? null };
+    const text = `hey jesse, link ${code} (K-${KEIKI_JOIN_CODE})`;
+    return { code, text, number: KEIKI_LINE_NUMBER };
   },
 });
 
@@ -222,11 +255,10 @@ export const handleForFollowup = internalQuery({
 
 type FollowupTarget = { phone: string; personName: string; reason: string; drafts: string[]; status: string };
 
-async function sendNotice(phone: string, text: string): Promise<boolean> {
-  const apiKey = env.KEIKI_API_KEY;
-  const agentId = env.KEIKI_AGENT_ID;
-  if (!apiKey || !agentId) return false;
-  const response = await fetch(`${KEIKI_HOST}/api/v1/developer/agents/${agentId}/notice`, {
+async function sendNotice(ctx: ActionCtx, phone: string, text: string): Promise<boolean> {
+  const apiKey: string | null = await ctx.runQuery(internal.keiki.secret, { key: "KEIKI_API_KEY" });
+  if (!apiKey) return false;
+  const response = await fetch(`${KEIKI_HOST}/api/v1/developer/agents/${KEIKI_AGENT_ID}/notice`, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ text, phone }),
@@ -246,6 +278,7 @@ export const pushFollowup = internalAction({
     if (target === null || target.status !== "suggested") return null;
     const drafts = target.drafts.map((d, i) => `${i + 1}. ${d}`).join("\n");
     await sendNotice(
+      ctx,
       target.phone,
       [
         `Follow-up due now for ${target.personName}. Reason: ${target.reason}.`,
@@ -272,6 +305,7 @@ export const eveningDigest = internalAction({
         .map((f) => `- ${f.personName} (${f.reason})${f.drafts[0] ? `: "${f.drafts[0]}"` : ""}`)
         .join("\n");
       await sendNotice(
+        ctx,
         phone,
         `Evening check-in. People worth a text tonight, each with a ready draft:\n${lines}\nSend the user one warm, short evening nudge with these, drafts quoted verbatim so they can copy them.`,
       );

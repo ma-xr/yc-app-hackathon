@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { internal } from "./_generated/api";
-import { env, httpAction } from "./_generated/server";
+import { httpAction } from "./_generated/server";
 
 const http = httpRouter();
 
@@ -23,7 +23,7 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, req) => {
     const url = new URL(req.url);
-    const secret = env.KEIKI_TOOL_SECRET;
+    const secret: string | null = await ctx.runQuery(internal.keiki.secret, { key: "KEIKI_TOOL_SECRET" });
     if (!secret || url.searchParams.get("token") !== secret) return json({ error: "unauthorized" }, 401);
     const tool = url.searchParams.get("tool");
 

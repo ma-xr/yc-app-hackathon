@@ -288,7 +288,7 @@ async function draftWithOpenAI(apiKey: string, context: DraftContext): Promise<s
     context.archetype ? `About ${context.personName}: ${context.archetype}` : "",
     context.facts.length ? `Facts: ${context.facts.join("; ")}` : "",
     voice,
-    "Each text is one or two sentences, under 160 characters, warm and specific, never mentions Jesse, an app, or that anything was recorded, never quotes exact day counts. Each draft takes a different angle.",
+    "Each text is one or two sentences, under 160 characters, warm and specific, never mentions Jesse, an app, or that anything was recorded, never quotes exact day counts, never invents links, URLs, places or facts (write [link] where a link would go). Each draft takes a different angle.",
   ]
     .filter(Boolean)
     .join("\n");
