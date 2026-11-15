@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "yc-app-hackathon",
+    "name": "Jesse",
     "slug": "yc-app-hackathon",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,9 +8,18 @@
     "scheme": "ycapphackathon",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.maxr.jesse",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
     },
     "android": {
+      "package": "com.maxr.jesse",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -38,6 +47,24 @@
         "expo-audio",
         {
           "microphonePermission": "Jesse listens to your conversations to note what matters. Audio and words are never kept."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Jesse adds your plans to your calendar."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Jesse matches the names it hears to your contacts so you can follow up."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "enableRemoteNotifications": false
         }
       ]
     ],

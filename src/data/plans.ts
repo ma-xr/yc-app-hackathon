@@ -16,7 +16,7 @@ export function weekStartOf(ms: number) {
 export function usePlansWeek(weekStart: number) {
   const weekEnd = addDays(weekStart, 7);
   const conversations = useQuery(api.conversations.range, { from: weekStart, to: weekEnd });
-  const open = useQuery(api.items.open, { kinds: ['plan', 'you_owe', 'they_owe', 'urgent'], limit: 100 });
+  const open = useQuery(api.items.open, { kinds: ['plan', 'you_owe', 'they_owe', 'urgent'], limit: 300 });
   if (conversations === undefined || open === undefined) return undefined;
   const items = open.filter((i) => i.dueAt !== undefined && i.dueAt >= weekStart && i.dueAt < weekEnd);
   return { conversations, items };
