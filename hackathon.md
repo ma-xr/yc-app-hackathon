@@ -192,3 +192,10 @@ as Plans (time, kind chip, title, gist and promises). Each card opens the
 conversation page. Jesse's notes moved to the end of the page, after Ready to
 send, Coming up and the conversation history. Reads people.get
 (`src/app/person/[id].tsx`).
+
+### 2026-11-15 - working tree
+Dropped the "Small but urgent" section from the Ideas tab (it stays on Home) and
+removed its now-unused hooks. The "From conversations" rows in each topic folder
+are now buttons with a chevron and a pressed state: they open that conversation's
+page, or the person's page when the item has no conversation. Reads topics.list
+(`src/app/(tabs)/ideas.tsx`, `src/data/ideas.ts`).
