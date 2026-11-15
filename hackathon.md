@@ -300,6 +300,10 @@ they only return Jesse's notes because no raw text is kept. Convex features:
 httpAction, internal query and mutation, index queries (`convex/mcp/*`,
 `convex/http.ts`, `convex/schema.ts`, `src/app/mcp.tsx`).
 
+### 2026-11-15 - working tree
+The Home greeting drops a trailing "demo" from the username, so the poomdemo
+account says "Hey Poom" (`src/components/greeting.ts`).
+
 ### 2026-11-15 - simpler Plans and People
 Plans now shows each conversation's takeaways right under it: promises, plans,
 small-but-urgent items and what others owe you, each with one inline action
