@@ -65,6 +65,9 @@ function sourceNote(event: IngestEvent, now: number) {
     case "conversation":
       return "A conversation the owner had. Each line starts with the speaker's name; \"You\" is the phone owner";
     case "imessage":
+      if (event.kind === "text_to_jesse") {
+        return `A text the owner sent to Jesse, received ${when}. The owner is writing about their own life: "I" and "me" are the owner, and the people they name are others. Keep it exactly like a conversation the owner had. The text`;
+      }
       return `An iMessage to the owner from ${from}, received ${when}${event.kind === "unread_message" ? ", still unread and unanswered" : ""}. If someone close to the owner has waited more than a day for a reply, add a you_owe item to call or reply to them, written like "Call Mom back" (personName set to them, importance 4, dueAt today at 18:00, no time in the text). The message`;
     case "email":
       return `An email to the owner from ${from}, received ${when}. Requests to the owner are you_owe items attributed to the sender; scheduled meetings are plans. The email`;
