@@ -303,3 +303,12 @@ httpAction, internal query and mutation, index queries (`convex/mcp/*`,
 ### 2026-11-15 - working tree
 The Home greeting drops a trailing "demo" from the username, so the poomdemo
 account says "Hey Poom" (`src/components/greeting.ts`).
+
+### 2026-11-15 - simpler Plans and People
+Plans now shows each conversation's takeaways right under it: promises, plans,
+small-but-urgent items and what others owe you, each with one inline action
+(Going / Not now on plans, Add to calendar, Done, and Send follow-up when a
+follow-up draft exists). A person's page is just their upcoming plans and the
+conversation history. The suggested texts, notes composer and open-items strip
+are gone from it (`src/app/(tabs)/plans.tsx`, `src/app/person/[id].tsx`,
+`src/components/takeaway.tsx`, `src/data/plans.ts`).

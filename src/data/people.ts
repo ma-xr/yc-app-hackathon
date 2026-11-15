@@ -1,16 +1,7 @@
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation } from 'convex/react';
 
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
-
-export function useUpdateFacts() {
-  const update = useMutation(api.people.update).withOptimisticUpdate((store, { personId, facts }) => {
-    if (!facts) return;
-    const current = store.getQuery(api.people.get, { personId });
-    if (current) store.setQuery(api.people.get, { personId }, { ...current, person: { ...current.person, facts } });
-  });
-  return (personId: Id<'people'>, facts: string[]) => update({ personId, facts });
-}
 
 export function cadenceLabel(days?: number) {
   if (!days) return null;
@@ -31,20 +22,6 @@ export function archetypeLine(person: { archetype?: string; cadenceDays?: number
 export function isDrifting(person: { lastSeenAt: number; cadenceDays?: number }, now: number) {
   if (!person.cadenceDays) return false;
   return now - person.lastSeenAt > person.cadenceDays * 1.5 * 86_400_000;
-}
-
-const DAY = 86_400_000;
-
-export function useSuggestedTexts(personId: Id<'people'>, now: number) {
-  const soon = useQuery(api.followups.forToday, { dayEnd: now + DAY });
-  const later = useQuery(api.followups.forToday, { dayEnd: now + 4 * DAY });
-  const latest = useQuery(api.followups.forToday, { dayEnd: now + 7 * DAY });
-  const byId = new Map(
-    [...(soon ?? []), ...(later ?? []), ...(latest ?? [])]
-      .filter((f) => f.personId === personId)
-      .map((f) => [f._id, f]),
-  );
-  return [...byId.values()].sort((a, b) => a.sendAt - b.sendAt);
 }
 
 export function useFollowupActions() {
