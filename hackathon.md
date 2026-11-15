@@ -88,3 +88,13 @@ only a short summary of the user's answers. Convex features: actions, internal
 queries and mutations, scheduled functions, file storage (`convex/jesse.ts`,
 `convex/reflections.ts`, `src/app/reflect.tsx`, `src/lib/notifications.ts`,
 `src/lib/voice.ts`).
+
+### 2026-11-15 - device config
+Configured the native build for a real device and Revyl's cloud iPhone. The
+app is named Jesse (bundle id com.maxr.jesse). Config plugins set the
+microphone, calendar, reminders and contacts permission strings and turn on
+background audio. Local notifications are on without the APNs entitlement, so
+a free Apple Personal Team can sign the app. eas.json has simulator, preview
+(ad hoc) and production profiles pointing at the dev Convex deployment. Checked
+on a Revyl cloud iPhone 17 Pro Max: sign-up, sign-in, sign-out and session
+persistence after relaunch all work (`app.json`, `eas.json`, `package.json`).
