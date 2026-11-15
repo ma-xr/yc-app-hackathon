@@ -9,7 +9,12 @@
  */
 
 import type * as auth from "../auth.js";
-import type * as moments from "../moments.js";
+import type * as conversations from "../conversations.js";
+import type * as items from "../items.js";
+import type * as lib_auth from "../lib/auth.js";
+import type * as people from "../people.js";
+import type * as seed from "../seed.js";
+import type * as topics from "../topics.js";
 import type * as users from "../users.js";
 
 import type {
@@ -20,7 +25,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
-  moments: typeof moments;
+  conversations: typeof conversations;
+  items: typeof items;
+  "lib/auth": typeof lib_auth;
+  people: typeof people;
+  seed: typeof seed;
+  topics: typeof topics;
   users: typeof users;
 }>;
 
