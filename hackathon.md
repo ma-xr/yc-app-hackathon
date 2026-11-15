@@ -101,3 +101,12 @@ queries and mutations, scheduled functions, file storage (`convex/jesse.ts`,
 `convex/reflections.ts`, `src/app/reflect.tsx`, `src/lib/notifications.ts`,
 `src/lib/voice.ts`).
 >>>>>>> origin/main
+
+### 2026-11-15 - working tree
+Built the Ideas tab ("On your mind"). An animated SVG brain fills four fixed
+bubble slots with the top topics, with sparks for sub-ideas and a halo on the
+selected one, all still under Reduce Motion. Below it are "Small but urgent"
+items with Add to calendar and Done, topic folders with a sub-idea tree and
+the conversations each idea came from, and a "Left out today" note summed from
+today's conversations. Reads topics.list, items.open and conversations.today
+(`src/app/(tabs)/ideas.tsx`, `src/components/brain.tsx`, `src/data/ideas.ts`).
