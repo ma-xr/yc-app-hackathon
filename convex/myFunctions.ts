@@ -65,9 +65,10 @@ export const myAction = action({
     // const data = await response.json();
 
     //// Query data by running Convex queries.
-    const data = await ctx.runQuery(api.myFunctions.listNumbers, {
-      count: 10,
-    });
+    const data: { viewer: string | null; numbers: number[] } =
+      await ctx.runQuery(api.myFunctions.listNumbers, {
+        count: 10,
+      });
     console.log(data);
 
     //// Write data by running Convex mutations.
