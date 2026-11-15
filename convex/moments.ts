@@ -1,9 +1,11 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import schema from "./schema";
 
 export const listMine = query({
   args: {},
+  returns: v.array(schema.doc("moments")),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
