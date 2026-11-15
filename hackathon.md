@@ -158,3 +158,13 @@ Locked the Keiki secrets bootstrap: the public mutation now stores a value only
 when its SHA-256 matches a hash committed in code, so nobody can claim the tool
 token or API key on a fresh deployment. Convex features: mutation, Web Crypto in
 the default runtime (`convex/keiki.ts`).
+
+### 2026-11-15 - working tree
+Fixed three iOS issues from the cloud-iPhone run. Mic failures on the orb, the
+person page and Reflect now show "I can't hear you here, so try typing" instead
+of the native error, and a failed hold-to-ask opens a text ask field on Home
+that calls jesse.ask and speaks the answer. Reflect opens as a full-screen modal
+so its composer stays above the keyboard, and Home shows a small "Talk to Jesse"
+entry to Reflect whenever the evening card isn't up. Reads reflections.tonight,
+calls jesse.ask (`src/app/(tabs)/index.tsx`, `src/app/_layout.tsx`,
+`src/app/person/[id].tsx`, `src/app/reflect.tsx`).

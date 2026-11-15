@@ -94,10 +94,8 @@ export default function PersonScreen() {
       setDictating(true);
       const text = await voice.stop();
       if (text.trim()) setNote(text.trim());
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Couldn’t hear that. Try again.",
-      );
+    } catch {
+      setError("I can’t hear you here, so try typing.");
     } finally {
       setDictating(false);
     }
