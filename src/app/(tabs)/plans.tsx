@@ -109,7 +109,7 @@ export default function Plans() {
                     ? { borderColor: C.accent, borderWidth: 2 }
                     : { borderColor: C.line, borderWidth: 1 },
               ]}>
-              <Text style={[styles.dayWeekday, { color: isSelected ? '#D9D5EA' : C.muted }]}>{weekday(d)}</Text>
+              <Text style={[styles.dayWeekday, { color: isSelected ? C.darkCardMuted : C.muted }]}>{weekday(d)}</Text>
               <Text style={[styles.dayNumber, { color: isSelected ? '#FFFFFF' : C.ink }]}>{new Date(d).getDate()}</Text>
               <View
                 style={[

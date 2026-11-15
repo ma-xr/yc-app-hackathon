@@ -23,23 +23,10 @@ import {
   type CheckInSettings,
 } from '@/lib/notifications';
 import { speak, stopSpeaking, useVoiceInput } from '@/lib/voice';
+import { C, F, ORB_STOPS } from '@/theme/tokens';
 
-const C = {
-  bg: '#F6F5FB',
-  surface: '#FFFFFF',
-  ink: '#1B1830',
-  inkSoft: '#3B3752',
-  muted: '#5E5A72',
-  line: '#E4E1F0',
-  chipBorder: '#DCD8EC',
-  accent: '#5A48D6',
-  accentDeep: '#3E2FB0',
-  accentTint: '#E7E3FB',
-  accentWash: '#EFECFC',
-  darkCardMuted: '#B9B4D1',
-};
 
-const HEADING = Platform.select({ ios: 'ui-rounded', default: undefined });
+const HEADING = F.display;
 
 const CHECK_IN_TIMES = [
   { hour: 20, minute: 30 },
@@ -293,9 +280,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: C.accent,
     backgroundImage:
-      'radial-gradient(circle at 34% 28%, #FFFFFF 0%, #D4CCFF 16%, #8E80F5 42%, #5A48D6 70%, #2A1F7A 100%)',
+      `radial-gradient(circle at 34% 28%, ${ORB_STOPS.map((o) => `${o.color} ${o.offset}`).join(', ')})`,
   },
-  name: { fontFamily: HEADING, fontSize: 26, fontWeight: '700', color: C.ink },
+  name: { fontFamily: HEADING, fontSize: 26, color: C.ink },
   meta: { fontSize: 13, fontWeight: '500', color: C.muted, marginTop: 2 },
   close: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   closeText: { fontSize: 15, fontWeight: '700', color: C.accent },
