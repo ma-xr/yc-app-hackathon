@@ -45,11 +45,14 @@ export default function Home() {
   const [muted, setMuted] = useState<boolean | undefined>(undefined);
   const today = useTodayConversations(startOfDay(now));
   const sample = useSampleConversation();
-  const greeted = useRef(false);
+  const greetedOn = useRef<string | null>(null);
+  const mutedRef = useRef(false);
+  const todayKey = localDate(new Date(now));
 
   useEffect(() => {
     void Promise.all([getPref(PREF.username), getPref(PREF.voiceMuted)]).then(([name, mute]) => {
       setUsername(name);
+      mutedRef.current = mute === '1';
       setMuted(mute === '1');
     });
   }, []);
@@ -60,21 +63,21 @@ export default function Home() {
       : greetingLine(displayName(username), today, cards);
 
   useEffect(() => {
-    if (greeting === null || muted === undefined || greeted.current) return;
-    greeted.current = true;
+    if (greeting === null || muted === undefined || greetedOn.current === todayKey) return;
+    greetedOn.current = todayKey;
     if (muted) return;
-    const date = localDate();
     void getPref(PREF.greetedOn)
       .then(async (last) => {
-        if (last === date) return;
-        await setPref(PREF.greetedOn, date);
+        if (last === todayKey || mutedRef.current) return;
+        await setPref(PREF.greetedOn, todayKey);
         await speak(greeting);
       })
       .catch(() => {});
-  }, [greeting, muted]);
+  }, [greeting, muted, todayKey]);
 
   const toggleMuted = () => {
     const next = !muted;
+    mutedRef.current = next;
     setMuted(next);
     void setPref(PREF.voiceMuted, next ? '1' : '0');
     if (next) void stopSpeaking().catch(() => {});
@@ -100,7 +103,7 @@ export default function Home() {
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
       setSaid(answer);
-      if (!muted) void speak(answer).catch(() => {});
+      if (!mutedRef.current) void speak(answer).catch(() => {});
     } catch {
       setSaid('Something went wrong. Try asking again.');
     }
@@ -136,11 +139,11 @@ export default function Home() {
 
   const listenFailed =
     !listening.isListening && listening.status !== null && listening.status !== 'Noting what mattered…';
-  const showSample = micFailed || listenFailed || sample.status !== null;
+  const showSample = micFailed || listenFailed || sample.running;
 
   const saysLine = listening.isListening
     ? (listening.status ?? 'Listening…')
-    : sample.status
+    : sample.running && sample.status
       ? sample.status
       : listenFailed && !said
       ? 'I can’t hear you here, so try typing.'
@@ -208,7 +211,10 @@ export default function Home() {
         ) : null}
         {showSample ? (
           <Pressable
-            onPress={() => void sample.run()}
+            onPress={() => {
+              setSaid(null);
+              void sample.run().then((line) => line && setSaid(line));
+            }}
             disabled={sample.running}
             hitSlop={8}
             accessibilityRole="link"

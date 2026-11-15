@@ -35,7 +35,7 @@ export default function ConversationScreen() {
     );
   }
 
-  const ended = conversation.endedAt ? ` – ${time(conversation.endedAt)}` : '';
+  const ended = conversation.endedAt && time(conversation.endedAt) !== time(conversation.startedAt) ? ` – ${time(conversation.endedAt)}` : '';
   const items = conversation.items.filter((i) => i.status !== 'dismissed');
   const topicNames = (topics ?? [])
     .filter((t) => conversation.topicIds?.includes(t._id) || items.some((i) => i.topicId === t._id))

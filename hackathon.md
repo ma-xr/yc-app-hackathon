@@ -209,3 +209,12 @@ opens Reflect. After a mic failure, "Try a sample conversation" sends a bundled
 conversations.stop (`src/app/(tabs)/index.tsx`, `src/components/greeting.ts`,
 `src/components/sign-in.tsx`, `src/lib/prefs.ts`, `src/lib/sample-conversation.ts`,
 `src/data/hooks.ts`, `assets/audio/sample-conversation.m4a`).
+
+### 2026-11-15 - working tree
+Round-2 polish after the cloud-iPhone run. Once a sample conversation finishes,
+typed answers show again. Voice off now stops answers and the greeting that are
+still on their way. The daily greeting checks the date again when the app comes
+back the next day. Plans hides empty conversations left behind by a mic failure.
+The conversation page shows an end time only when it differs from the start
+(`src/app/(tabs)/index.tsx`, `src/lib/sample-conversation.ts`,
+`src/data/plans.ts`, `src/app/conversation/[id].tsx`).
