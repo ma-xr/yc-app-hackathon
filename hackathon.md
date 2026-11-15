@@ -299,3 +299,7 @@ They read the live tables, so an edit in the app shows up in the next call, and
 they only return Jesse's notes because no raw text is kept. Convex features:
 httpAction, internal query and mutation, index queries (`convex/mcp/*`,
 `convex/http.ts`, `convex/schema.ts`, `src/app/mcp.tsx`).
+
+### 2026-11-15 - working tree
+The Home greeting drops a trailing "demo" from the username, so the poomdemo
+account says "Hey Poom" (`src/components/greeting.ts`).
