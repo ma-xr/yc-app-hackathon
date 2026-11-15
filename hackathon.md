@@ -139,3 +139,16 @@ items with Add to calendar and Done, topic folders with a sub-idea tree and
 the conversations each idea came from, and a "Left out today" note summed from
 today's conversations. Reads topics.list, items.open and conversations.today
 (`src/app/(tabs)/ideas.tsx`, `src/components/brain.tsx`, `src/data/ideas.ts`).
+
+### 2026-11-15 - working tree
+Moved Jesse's Keiki config off Convex env vars, because the shared dev deploy
+key can't write them: the agent id, shared iMessage number and join code are
+constants, and the tool token and Keiki API key live in a write-once appSecrets
+table seeded once by a bootstrap mutation and read through an internal query.
+Ran the iMessage round trip: a phone linked by code, Jesse answered "what did I
+promise Sam?" and "who should I text today?" from Convex, and a reminder's due
+nudge went out as an iMessage with drafts. Drafts no longer invent links.
+Convex features: schema table and index, internal query, HTTP action
+(`convex/keiki.ts`, `convex/http.ts`, `convex/schema.ts`,
+`convex/convex.config.ts`, `convex/followups.ts`).
+
