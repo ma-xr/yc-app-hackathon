@@ -11,6 +11,15 @@ const KEIKI_AGENT_ID = "6c5f414b-1500-46f9-badf-15c9586016ec";
 const KEIKI_LINE_NUMBER = "+17796251378";
 const KEIKI_JOIN_CODE = "W7LY8X";
 const secretKey = v.union(v.literal("KEIKI_TOOL_SECRET"), v.literal("KEIKI_API_KEY"));
+const SECRET_SHA256: Record<"KEIKI_TOOL_SECRET" | "KEIKI_API_KEY", string> = {
+  KEIKI_TOOL_SECRET: "455613b3c85d9f7b285be6dbb6062adfdd55864d6e2a41e7af7b9ca3fda75469",
+  KEIKI_API_KEY: "74c3aa00934d921bccf6edc5a6287f96bafef9b994346fc1a3aa68829339db86",
+};
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 export const bootstrapSecrets = mutation({
   args: { secrets: v.array(v.object({ key: secretKey, value: v.string() })) },
@@ -22,8 +31,9 @@ export const bootstrapSecrets = mutation({
         .query("appSecrets")
         .withIndex("by_key", (q) => q.eq("key", key))
         .unique();
-      const written = existing === null && value.trim().length > 0;
-      if (written) await ctx.db.insert("appSecrets", { key, value: value.trim() });
+      const trimmed = value.trim();
+      const written = existing === null && (await sha256Hex(trimmed)) === SECRET_SHA256[key];
+      if (written) await ctx.db.insert("appSecrets", { key, value: trimmed });
       results.push({ key, written });
     }
     return results;

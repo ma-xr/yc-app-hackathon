@@ -152,3 +152,9 @@ Convex features: schema table and index, internal query, HTTP action
 (`convex/keiki.ts`, `convex/http.ts`, `convex/schema.ts`,
 `convex/convex.config.ts`, `convex/followups.ts`).
 
+
+### 2026-11-15 - working tree
+Locked the Keiki secrets bootstrap: the public mutation now stores a value only
+when its SHA-256 matches a hash committed in code, so nobody can claim the tool
+token or API key on a fresh deployment. Convex features: mutation, Web Crypto in
+the default runtime (`convex/keiki.ts`).
