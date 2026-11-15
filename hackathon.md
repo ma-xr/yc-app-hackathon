@@ -175,3 +175,13 @@ is the only dependency Expo Go doesn't support, so it now loads lazily and only
 outside Expo Go. Inside Expo Go, Add to calendar explains that it needs the
 installed app, while listening, Jesse's answers, voice and every screen keep
 working (`src/lib/actions.ts`).
+
+### 2026-11-15 - working tree
+Added a conversation page at /conversation/[id], opened from every conversation
+card on Plans. It shows when and where the conversation was, who was there (each
+person opens their page), Jesse's gist, and the promises, plans, notes, open
+questions and topics that came out of it. Each item can be edited or forgotten,
+and the page ends with "Jesse keeps notes, not words". The card widget moved to a
+shared component. Reads conversations.get and topics.list
+(`src/app/conversation/[id].tsx`, `src/components/conversation-card.tsx`,
+`src/app/(tabs)/plans.tsx`).
