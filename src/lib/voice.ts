@@ -16,8 +16,10 @@ import { api } from '../../convex/_generated/api';
 import { convex } from '@/lib/convex';
 
 let player: AudioPlayer | null = null;
+let generation = 0;
 
 export async function stopSpeaking() {
+  generation += 1;
   player?.remove();
   player = null;
   await Speech.stop();
@@ -25,9 +27,16 @@ export async function stopSpeaking() {
 
 export async function speak(text: string) {
   await stopSpeaking();
+  const mine = generation;
   try {
     const { url } = await convex.action(api.jesse.speak, { text });
+    if (mine !== generation) {
+      return;
+    }
     await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
+    if (mine !== generation) {
+      return;
+    }
     const current = createAudioPlayer(url);
     player = current;
     current.addListener('playbackStatusUpdate', (status) => {
@@ -37,7 +46,9 @@ export async function speak(text: string) {
     });
     current.play();
   } catch {
-    Speech.speak(text, { rate: 0.95, pitch: 1.0 });
+    if (mine === generation) {
+      Speech.speak(text, { rate: 0.95, pitch: 1.0 });
+    }
   }
 }
 

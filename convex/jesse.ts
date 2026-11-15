@@ -222,32 +222,52 @@ function supermemoryNamespace(ownerId: Id<"users">) {
   return `jesse_${ownerId}`;
 }
 
-async function supermemory(path: string, body: unknown) {
+async function supermemory(method: "POST" | "DELETE", path: string, body?: unknown) {
   const key = process.env.SUPERMEMORY_API_KEY;
   if (!key) {
     return null;
   }
   const response = await fetch(`https://api.supermemory.ai${path}`, {
-    method: "POST",
+    method,
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!response.ok) {
-    console.warn(`Supermemory ${path.split("/").pop()} failed with ${response.status}`);
+    console.warn(`Supermemory ${method} failed with ${response.status}`);
     return null;
   }
-  return (await response.json()) as unknown;
+  return method === "DELETE" ? {} : ((await response.json()) as unknown);
 }
 
 async function recall(ownerId: Id<"users">, question: string) {
-  const result = (await supermemory(`/ns/${supermemoryNamespace(ownerId)}/search`, {
+  const result = (await supermemory("POST", `/ns/${supermemoryNamespace(ownerId)}/search`, {
     query: question,
-    searchMode: "hybrid",
+    searchMode: "chunks",
     limit: 6,
     threshold: 0.5,
-  })) as { results?: { memory?: string; chunk?: string }[] } | null;
-  return (result?.results ?? []).map((r) => r.memory ?? r.chunk).filter((t): t is string => !!t);
+  })) as { results?: { chunk?: string; metadata?: { source?: unknown } }[] } | null;
+  return (result?.results ?? []).flatMap((r) =>
+    r.chunk && typeof r.metadata?.source === "string" ? [{ text: r.chunk, source: r.metadata.source }] : [],
+  );
 }
+
+export const liveSources = internalQuery({
+  args: { ownerId: v.id("users"), sources: v.array(v.string()) },
+  returns: v.array(v.string()),
+  handler: async (ctx, { ownerId, sources }) => {
+    const live: string[] = [];
+    for (const source of sources) {
+      const [table, rawId] = source.split(":");
+      const id =
+        table === "person" ? ctx.db.normalizeId("people", rawId) : table === "conversation" ? ctx.db.normalizeId("conversations", rawId) : null;
+      const doc = id ? await ctx.db.get(id) : null;
+      if (doc && doc.ownerId === ownerId) {
+        live.push(source);
+      }
+    }
+    return live;
+  },
+});
 
 const ASK_PROMPT = `You are Jesse, a warm, calm companion who remembers the parts of the user's conversations that matter: promises, plans, and what people care about. You never keep the words themselves, only your own short notes, listed below.
 
@@ -269,10 +289,14 @@ export const ask = action({
     if (!trimmed) {
       throw new ConvexError("Ask Jesse something");
     }
-    const [memory, recalled] = await Promise.all([
+    const [memory, hits] = await Promise.all([
       ctx.runQuery(internal.jesse.memory, { ownerId }),
       recall(ownerId, trimmed),
     ]);
+    const live: string[] = hits.length
+      ? await ctx.runQuery(internal.jesse.liveSources, { ownerId, sources: hits.map((h) => h.source) })
+      : [];
+    const recalled = hits.filter((h) => live.includes(h.source)).map((h) => h.text);
     let notes = describeMemory(memory, timeZone ?? "America/Los_Angeles");
     if (recalled.length > 0) {
       notes += `\n\nOLDER MEMORIES (long-term recall)\n${recalled.map((r) => `- ${r}`).join("\n")}`;
@@ -295,26 +319,40 @@ export const syncMemory = internalAction({
     const namespace = supermemoryNamespace(ownerId);
     const docs = [
       ...memory.people.map((p) => ({
-        id: `person_${p.id}`,
+        source: `person:${p.id}`,
         content: [`${p.name}.`, p.archetype, ...p.facts].filter(Boolean).join(" "),
         date: new Date(p.lastSeenAt).toISOString(),
       })),
       ...memory.conversations.map((c) => ({
-        id: `conversation_${c.id}`,
+        source: `conversation:${c.id}`,
         content: `Conversation with ${c.people.join(", ") || "someone"}${c.place ? ` at ${c.place}` : ""}: ${c.gist.join(" ")}`,
         date: new Date(c.startedAt).toISOString(),
       })),
-      ...memory.reflections
-        .filter((r) => r.summary)
-        .map((r) => ({ id: `reflection_${r.date}`, content: `Evening reflection on "${r.question}": ${r.summary}` })),
     ];
     await Promise.all(
-      docs.map((doc) =>
-        supermemory(`/ns/${namespace}/document`, {
-          ...doc,
-          supportingContext: "Jesse's short notes about the user's conversations with friends. Notes, never quotes.",
+      docs.map(({ source, content, date }) =>
+        supermemory("POST", `/ns/${namespace}/document`, {
+          id: source.replace(":", "_"),
+          content,
+          date,
+          metadata: { source },
+          taskType: "superrag",
         }),
       ),
+    );
+
+    const listed = (await supermemory("POST", `/ns/${namespace}/list/documents?limit=100`, {})) as {
+      documents?: { id: string; metadata?: { source?: unknown } }[];
+    } | null;
+    const remote = (listed?.documents ?? []).filter((d) => typeof d.metadata?.source === "string");
+    const live: string[] = await ctx.runQuery(internal.jesse.liveSources, {
+      ownerId,
+      sources: remote.map((d) => d.metadata!.source as string),
+    });
+    await Promise.all(
+      remote
+        .filter((d) => !live.includes(d.metadata!.source as string))
+        .map((d) => supermemory("DELETE", `/ns/${namespace}/document/${encodeURIComponent(d.id)}`)),
     );
     return null;
   },
