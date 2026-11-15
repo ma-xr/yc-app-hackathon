@@ -253,3 +253,15 @@ file is deleted after upload even when the upload fails, and stop or unmount
 removes any file left behind. Home shows a "Listening · since 2:10 PM" pill that
 stops listening when tapped (`src/lib/listening.ts`, `src/app/(tabs)/index.tsx`,
 `app.json`).
+
+### 2026-11-15 - working tree
+The evening check-in notification now asks "Is now a good time?" with two
+actions that also show on a paired Apple Watch: "Yes, let's talk" opens Reflect
+in voice mode, where Jesse says tonight's question out loud first (tap Voice off
+to silence it), and "Later" snoozes it for 30 minutes without opening the app.
+A small "Check in now" button next to Sign out on Home fires the same
+notification in 3 seconds for demos. Each step is recorded on tonight's
+reflection as asked, accepted, snoozed or talked (`src/lib/notifications.ts`,
+`src/app/reflect.tsx`, `src/app/(tabs)/index.tsx`, `convex/reflections.ts`,
+`convex/schema.ts`). Convex features: public mutation with auth and ownership
+check, index query, optional schema fields.

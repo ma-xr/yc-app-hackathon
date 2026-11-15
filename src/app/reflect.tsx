@@ -1,5 +1,5 @@
-import { useAction, useQuery } from 'convex/react';
-import { router } from 'expo-router';
+import { useAction, useMutation, useQuery } from 'convex/react';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import {
   ActivityIndicator,
@@ -55,6 +55,10 @@ export default function ReflectScreen() {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const tonight = useQuery(api.reflections.tonight, { date });
   const reply = useAction(api.reflections.reply);
+  const markCheckIn = useMutation(api.reflections.markCheckIn);
+  const { voice: voiceParam } = useLocalSearchParams<{ voice?: string }>();
+  const spokeFirst = useRef(false);
+  const talked = useRef(false);
   const voice = useVoiceInput();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
 
@@ -62,13 +66,21 @@ export default function ReflectScreen() {
   const [draft, setDraft] = useState('');
   const [thinking, setThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [voiceReplies, setVoiceReplies] = useState(false);
+  const [voiceReplies, setVoiceReplies] = useState(voiceParam === '1');
   const [checkIn, setCheckIn] = useState<CheckInSettings | null>(null);
 
   useEffect(() => {
     void getCheckInSettings().then(setCheckIn);
     return () => void stopSpeaking();
   }, []);
+
+  useEffect(() => {
+    if (!voiceReplies || !tonight || spokeFirst.current || voiceParam !== '1') {
+      return;
+    }
+    spokeFirst.current = true;
+    void speak(tonight.question);
+  }, [voiceReplies, tonight, voiceParam]);
 
   const send = async (text: string, spoken: boolean) => {
     const message = text.trim();
@@ -80,6 +92,15 @@ export default function ReflectScreen() {
     setThinking(true);
     const history = turns;
     setTurns([...history, { role: 'user', text: message }]);
+    if (!talked.current) {
+      talked.current = true;
+      void markCheckIn({
+        date,
+        state: 'talked',
+        question: tonight.question,
+        topicId: tonight.topicId ?? undefined,
+      }).catch(() => {});
+    }
     try {
       const result = await reply({
         date,
@@ -200,7 +221,7 @@ export default function ReflectScreen() {
             <Text style={styles.checkInText}>
               {checkIn?.enabled === false
                 ? 'Off. Jesse won’t nudge you in the evening.'
-                : `Jesse asks “Got a minute?” at ${formatCheckInTime(checkIn ?? CHECK_IN_TIMES[2] as CheckInSettings)}. It shows on your Watch too.`}
+                : `Jesse asks “Is now a good time?” at ${formatCheckInTime(checkIn ?? CHECK_IN_TIMES[2] as CheckInSettings)}. It shows on your Watch too.`}
             </Text>
             <View style={styles.chips}>
               {CHECK_IN_TIMES.map((time) => {

@@ -120,6 +120,10 @@ export default defineSchema({
         text: v.string(),
       }),
     ),
+    checkIn: v.optional(
+      v.union(v.literal("asked"), v.literal("accepted"), v.literal("snoozed"), v.literal("talked")),
+    ),
+    checkInAt: v.optional(v.number()),
   }).index("by_ownerId_and_date", ["ownerId", "date"]),
 
   keikiLinks: defineTable({
