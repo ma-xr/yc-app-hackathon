@@ -73,7 +73,8 @@ Write:
 - moodFacts: one entry per input mood fact, same order. title: 6 words or fewer. reason: one line, 20 words or fewer.
 - peopleReasons: one line per input people fact, same order, 20 words or fewer.
 - activityReasons: one line per input activity fact, same order, 20 words or fewer.
-- nudgeReason: one line on why reaching out to the nudge person would be good, or null when there is no nudge.`;
+- nudgeReason: one line on why reaching out to the nudge person would be good, or null when there is no nudge.
+- Never restate scores, minute counts or calendar dates: the app shows the numbers. Say "a long stretch", "most of the day", "almost two weeks" instead.`;
 
 const nullableString = { type: ["string", "null"] };
 const DAY_SCHEMA = {
