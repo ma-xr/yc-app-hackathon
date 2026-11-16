@@ -79,7 +79,7 @@ export default function Talk() {
     setNote(null);
     setExchange({ you: text, jesse: null });
     try {
-      const prior = history.current;
+      const prior: Turn[] = history.current.length ? history.current : greeting ? [{ role: 'jesse', text: greeting }] : [];
       const { answer, mood } = await ask({
         question: text,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,

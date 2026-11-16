@@ -6,7 +6,8 @@ import { useEvidenceSheet } from '@/components/insights/sheet-context';
 import type { Profile, Trait } from '@/components/insights/types';
 import { Enter } from '@/components/motion';
 import { PressableScale } from '@/components/pressable-scale';
-import { Avatar, Button, Card, Divider, SectionLabel } from '@/components/ui';
+import { PersonAvatar } from '@/components/insights/person-avatar';
+import { Button, Card, Divider, SectionLabel } from '@/components/ui';
 import { C, F, T } from '@/theme/tokens';
 
 const formatDelta = (d: number) => `${d >= 0 ? '+' : ''}${Math.round(d)}`;
@@ -89,7 +90,7 @@ export function YouView({ profile }: { profile: Profile }) {
                     accessibilityLabel={['Open ' + o.name, o.roleLabel, meta].filter(Boolean).join(', ')}
                     onPress={() => router.push({ pathname: '/person/[id]', params: { id: o._id } })}
                     style={styles.orbitRow}>
-                    <Avatar name={o.name} size={40} />
+                    <PersonAvatar id={o._id} name={o.name} size={40} />
                     <View style={{ flex: 1, gap: 2 }}>
                       <View style={styles.nameRow}>
                         <Text style={[T.cardTitle, { flexShrink: 1 }]} numberOfLines={1}>

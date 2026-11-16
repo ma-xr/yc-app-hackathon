@@ -6,7 +6,8 @@ import { Chevron, Desc, FactRow, SectionHead, SplitBar, formatMins } from '@/com
 import { useEvidenceSheet } from '@/components/insights/sheet-context';
 import type { Day } from '@/components/insights/types';
 import { Enter } from '@/components/motion';
-import { Avatar, Card, Divider } from '@/components/ui';
+import { PersonAvatar } from '@/components/insights/person-avatar';
+import { Card, Divider } from '@/components/ui';
 
 export function PeopleSection({ day }: { day: Day }) {
   const open = useEvidenceSheet();
@@ -29,7 +30,7 @@ export function PeopleSection({ day }: { day: Day }) {
           <Enter key={f.personId} index={i}>
             {i ? <Divider /> : null}
             <FactRow
-              lead={<Avatar name={name} size={28} />}
+              lead={<PersonAvatar id={f.personId} name={name} size={28} />}
               title={name}
               tag={f.person?.roleLabel}
               value={formatMins(f.minutes)}
@@ -45,7 +46,7 @@ export function PeopleSection({ day }: { day: Day }) {
         <View>
           {people.facts.length ? <Divider /> : null}
           <FactRow
-            lead={<Avatar name={nudge.name} size={28} />}
+            lead={<PersonAvatar id={nudge._id} name={nudge.name} size={28} />}
             title={`Reach out to ${firstName(nudge.name)}?`}
             value={<Chevron />}
             reason={people.nudgeReason ?? `It's been a while since you talked to ${firstName(nudge.name)}.`}

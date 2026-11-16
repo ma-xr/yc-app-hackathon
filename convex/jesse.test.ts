@@ -1,7 +1,17 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { internal } from "./_generated/api";
-import { buildTalkMessages, capWords, dayBounds, describeToday, parseTalkReply } from "./jesse";
+import {
+  buildTalkMessages,
+  capWords,
+  dayBounds,
+  describeMemory,
+  describeToday,
+  parseTalkReply,
+  relativeDay,
+  softenTimes,
+  type Memory,
+} from "./jesse";
 import schema from "./schema";
 import { modules } from "./test.setup";
 
@@ -116,6 +126,8 @@ describe("today", () => {
         place: "Blue Bottle, Hayes Valley",
         people: ["Sam"],
         gist: ["Sam is nervous about the interview."],
+        mood: null,
+        moodReason: null,
       },
     ]);
     expect(result.items).toEqual([
@@ -126,7 +138,8 @@ describe("today", () => {
     ]);
 
     const notes = describeToday(result, timeZone, now);
-    expect(notes).toContain("9:00 AM at Blue Bottle, Hayes Valley with Sam");
+    expect(notes).toContain("this morning at Blue Bottle, Hayes Valley with Sam");
+    expect(notes).toContain("due this evening");
     expect(notes).toContain("Text Sam good luck");
     expect(notes).not.toContain("Denver");
   });
@@ -187,5 +200,61 @@ describe("capWords", () => {
   test("parseTalkReply applies the 45 word cap", () => {
     const answer = `Short first sentence. ${"word ".repeat(80)}end.`;
     expect(parseTalkReply({ answer, mood: "up" }).answer).toBe("Short first sentence.");
+  });
+});
+
+const CLOCK = /\d{1,2}:\d{2}|\b\d{1,2}\s*[ap]\.?m\b/i;
+
+describe("time-free context", () => {
+  const timeZone = "America/Los_Angeles";
+  const now = Date.parse("2026-11-15T23:00:00Z");
+  const { start } = dayBounds(now, timeZone);
+
+  test("softenTimes turns clock times in free text into parts of the day", () => {
+    expect(softenTimes("Dentist at 3:15pm, call Mom by 9 AM, standup 14:00, lunch at noon")).toBe(
+      "Dentist in the afternoon, call Mom in the morning, standup in the afternoon, lunch around lunch",
+    );
+    expect(softenTimes("Bought 5 apples and 2 ampoules")).toBe("Bought 5 apples and 2 ampoules");
+  });
+
+  test("relativeDay speaks in days, never dates or times", () => {
+    expect(relativeDay(start + 12.5 * HOUR, timeZone, now)).toBe("around lunch");
+    expect(relativeDay(start - 2 * HOUR, timeZone, now)).toBe("yesterday");
+    expect(relativeDay(start + 30 * HOUR, timeZone, now)).toBe("tomorrow");
+    expect(relativeDay(start - 3 * 24 * HOUR, timeZone, now)).toBe("on Thursday");
+    expect(relativeDay(start - 30 * 24 * HOUR, timeZone, now)).toBe("a while back");
+  });
+
+  test("today and memory context carry no clock times and flag how a conversation felt", () => {
+    const today = describeToday(
+      {
+        conversations: [
+          { startedAt: start + 15.25 * HOUR, place: "Ramen Nagi", people: ["Sam"], gist: ["Sam got a Stripe interview at 4pm Friday."], mood: 2, moodReason: "Sam's big news" },
+          { startedAt: start + 8 * HOUR, place: null, people: ["Mom"], gist: ["Mom's surgery moved."], mood: -1.6, moodReason: null },
+        ],
+        items: [{ kind: "plan", text: "Call Mom at 7:30", person: "Mom", dueAt: start + 19.5 * HOUR }],
+        people: [{ name: "Sam", archetype: null, facts: ["Interview Friday 4 PM"] }],
+      },
+      timeZone,
+      now,
+    );
+    expect(today).not.toMatch(CLOCK);
+    expect(today).toContain("this morning with Mom: Mom's surgery moved. [this one really weighed on them]");
+    expect(today).toContain("this afternoon at Ramen Nagi with Sam");
+    expect(today).toContain("[this one really lit them up: Sam's big news]");
+    expect(today.indexOf("with Mom")).toBeLessThan(today.indexOf("with Sam"));
+
+    const memory: Memory = {
+      people: [{ id: "p" as never, name: "Sam", archetype: null, facts: ["Runs at 6am"], lastSeenAt: start + 15 * HOUR, conversationCount: 4 }],
+      items: [{ kind: "you_owe", text: "Send deck", person: "Sam", dueAt: start + 40 * HOUR, importance: 2 }],
+      topics: [{ label: "Job search", subIdeas: ["interview at 10:30"], conversationCount: 5, peopleCount: 2 }],
+      conversations: [{ id: "c" as never, startedAt: start - 5 * HOUR, people: ["Lee"], place: null, gist: ["Talked about Denver."] }],
+      reflections: [{ date: "2026-11-14", question: "What made you smile?", summary: "Lunch at 12:30" }],
+    };
+    const background = describeMemory(memory, timeZone, now);
+    expect(background).not.toMatch(CLOCK);
+    expect(background).not.toMatch(/conversations?\)|\d+ conversations/);
+    expect(background).toContain("Sam: Runs in the morning (last saw them this afternoon)");
+    expect(background).toContain("yesterday: you asked");
   });
 });

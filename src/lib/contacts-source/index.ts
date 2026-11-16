@@ -2,6 +2,7 @@ import { useMutation } from 'convex/react';
 import { useCallback, useMemo, useState } from 'react';
 
 import { api } from '../../../convex/_generated/api';
+import type { Id } from '../../../convex/_generated/dataModel';
 import { demoSource } from './demo';
 
 export type SyncContact = {
@@ -30,21 +31,24 @@ export interface ContactsSource {
 
 export const contactsSource: ContactsSource = demoSource;
 
-const NOT_YET = 'Contact sync needs a contacts.sync mutation on the backend';
-
 export function useContactsSync() {
   const loadDemo = useMutation(api.seed.demo);
+  const syncContacts = useMutation(api.contacts.sync);
+  const generatePhotoUploadUrl = useMutation(api.contacts.generatePhotoUploadUrl);
   const client = useMemo<ContactsClient>(
     () => ({
-      sync: async () => {
-        throw new Error(NOT_YET);
-      },
-      generatePhotoUploadUrl: async () => {
-        throw new Error(NOT_YET);
-      },
+      sync: ({ source, contacts }) =>
+        syncContacts({
+          source,
+          contacts: contacts.map(({ photoStorageId, ...c }) => ({
+            ...c,
+            ...(photoStorageId ? { photoStorageId: photoStorageId as Id<'_storage'> } : {}),
+          })),
+        }),
+      generatePhotoUploadUrl: () => generatePhotoUploadUrl({}),
       loadDemo: () => loadDemo({}),
     }),
-    [loadDemo],
+    [loadDemo, syncContacts, generatePhotoUploadUrl],
   );
   const [syncing, setSyncing] = useState(false);
 

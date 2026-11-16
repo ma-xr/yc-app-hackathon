@@ -2,6 +2,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
+import { PressableScale } from '@/components/pressable-scale';
 import { SORT_GROUPS, SORT_OPTIONS, type ContactSort } from '@/components/contacts/list/sort';
 import { SectionLabel } from '@/components/ui';
 import { C, F, S, T } from '@/theme/tokens';
@@ -9,17 +10,17 @@ import { C, F, S, T } from '@/theme/tokens';
 export function SortPill({ sort, onPress }: { sort: ContactSort; onPress: () => void }) {
   const label = SORT_OPTIONS.find((o) => o.key === sort)!.short;
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`Sorted by ${label}. Change sort`}
       onPress={onPress}
       hitSlop={8}
-      style={({ pressed }) => [styles.pill, pressed && { opacity: 0.7 }]}>
+      style={styles.pill}>
       <Text style={styles.pillText}>
         Sorted by <Text style={{ color: C.ink }}>{label}</Text>
       </Text>
       <Icon name="chevronDown" size={14} color={C.muted} strokeWidth={2} />
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -47,8 +48,10 @@ export function SortSheet({
               {group.options.map((o) => {
                 const selected = o.key === sort;
                 return (
-                  <Pressable
+                  <PressableScale
                     key={o.key}
+                    haptic="selection"
+                    scaleTo={0.98}
                     accessibilityRole="radio"
                     accessibilityState={{ selected }}
                     accessibilityLabel={`${o.label}. ${o.description}`}
@@ -56,13 +59,13 @@ export function SortSheet({
                       onSelect(o.key);
                       onClose();
                     }}
-                    style={({ pressed }) => [styles.option, pressed && { backgroundColor: C.accentWash }]}>
+                    style={styles.option}>
                     <View style={{ flex: 1, gap: 2 }}>
                       <Text style={[styles.optionLabel, selected && { color: C.accent }]}>{o.label}</Text>
                       <Text style={[T.meta, { fontFamily: F.regular }]}>{o.description}</Text>
                     </View>
                     {selected ? <Icon name="check" size={18} color={C.accent} strokeWidth={2.2} /> : null}
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </View>

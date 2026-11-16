@@ -111,8 +111,8 @@ function summary(r: Row): ContactSummary {
   return {
     id: r._id,
     name: r.name,
-    avatarKey: AVATAR_BY_NAME.get(r.name.toLowerCase()),
-    photoUrl: null,
+    avatarKey: r.avatarKey ?? AVATAR_BY_NAME.get(r.name.toLowerCase()),
+    photoUrl: r.photoUrl,
     relationship,
     roleLabel,
     relationshipSummary: r.relationshipSummary ?? roleLabel,
@@ -177,8 +177,8 @@ function profileOf(detail: Detail): { profile: ContactProfile; history: Conversa
   return {
     profile: {
       ...summary(p),
-      phones: p.phone ? [p.phone] : [],
-      emails: [],
+      phones: p.phones?.length ? p.phones : p.phone ? [p.phone] : [],
+      emails: p.emails ?? [],
       birthday: p.birthday ? parseBirthday(p.birthday.text) : undefined,
       birthdayText: fact(p.birthday),
       knownSince: oldest,
