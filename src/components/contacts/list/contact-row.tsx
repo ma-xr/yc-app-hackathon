@@ -1,6 +1,7 @@
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { PressableScale } from '@/components/pressable-scale';
 import { ContactAvatar } from '@/components/contacts/contact-avatar';
 import type { Metric } from '@/components/contacts/list/sort';
 import { C, F, S, T } from '@/theme/tokens';
@@ -23,12 +24,13 @@ export const ContactRow = memo(function ContactRow({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={[name, subtitle, metric.label].filter(Boolean).join(', ')}
       accessibilityHint="Opens contact"
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: C.accentWash }]}>
+      scaleTo={0.98}
+      style={styles.row}>
       <ContactAvatar name={name} photoUrl={photoUrl} avatarKey={avatarKey} size={44} />
       <View style={styles.text}>
         <Text style={styles.name} numberOfLines={1}>
@@ -41,7 +43,7 @@ export const ContactRow = memo(function ContactRow({
         ) : null}
       </View>
       {metric.kind === 'meter' ? <DotMeter value={metric.value} /> : <Text style={styles.metric}>{metric.text}</Text>}
-    </Pressable>
+    </PressableScale>
   );
 });
 

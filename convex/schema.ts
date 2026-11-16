@@ -205,6 +205,12 @@ export default defineSchema({
     funScore: v.optional(v.number()),
     compatibilityScore: v.optional(v.number()),
     deepTalkScore: v.optional(v.number()),
+    phones: v.optional(v.array(v.string())),
+    emails: v.optional(v.array(v.string())),
+    avatarKey: v.optional(v.string()),
+    photoStorageId: v.optional(v.id("_storage")),
+    contactSource: v.optional(v.union(v.literal("apple"), v.literal("demo"))),
+    lastSyncedAt: v.optional(v.number()),
   })
     .index("by_ownerId", ["ownerId"])
     .index("by_ownerId_and_lastSeenAt", ["ownerId", "lastSeenAt"])

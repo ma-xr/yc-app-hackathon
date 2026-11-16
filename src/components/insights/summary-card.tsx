@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { useInsightActions } from '@/components/insights/data';
 import type { Day } from '@/components/insights/types';
+import { IconButton } from '@/components/pressable-scale';
 import { Button, Card, JesseNoteTag } from '@/components/ui';
 import { C, F, T } from '@/theme/tokens';
 
@@ -80,15 +81,15 @@ export function SummaryCard({ day, title }: { day: Day; title: string }) {
         {(['up', 'down'] as const).map((v) => {
           const on = rating?.verdict === v;
           return (
-            <Pressable
+            <IconButton
               key={v}
-              accessibilityRole="button"
+              haptic="selection"
               accessibilityLabel={v === 'up' ? 'Yes, feels right' : 'No, feels off'}
               accessibilityState={{ selected: on }}
               onPress={() => rate(v)}
               style={[styles.thumb, on && { backgroundColor: C.accentTint, borderColor: C.accent }]}>
               <Thumb down={v === 'down'} color={on ? C.accent : C.mutedIcon} />
-            </Pressable>
+            </IconButton>
           );
         })}
       </View>

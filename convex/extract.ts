@@ -9,6 +9,11 @@ const EXTRACT_MODEL = process.env.OPENAI_EXTRACT_MODEL ?? "gpt-5-mini";
 const MAX_WORDS = 12;
 const KINDS = ["you_owe", "they_owe", "plan", "urgent", "fact", "question", "takeaway", "goal", "concern"] as const;
 type Kind = (typeof KINDS)[number];
+const ENERGIES = ["low", "medium", "high"] as const;
+const ACTIVITIES = ["building", "meeting", "meal", "social", "exercise", "outdoors", "commute", "errand", "other"] as const;
+const RELATIONSHIPS = ["work", "friend", "family", "other"] as const;
+const MAX_REASON_WORDS = 10;
+const MAX_LIST = 3;
 
 const RUBRIC = `You are Jesse, a memory companion that listens to the phone owner's conversations and keeps only what a thoughtful friend would want to remember. You never keep the words themselves: write every note in your own voice, never as a quote.
 
@@ -35,27 +40,103 @@ Rules:
 - people.archetype: one short line like "Classmate · exams and study plans", or null if unclear.
 - people.facts: each 12 words or fewer, only "their life" facts.
 - place: a one-word setting if it is obvious (Lunch, Coffee, Call, Class), else null.
-- If the transcript holds nothing worth keeping, return empty arrays and only count leftOutCount.`;
+- If the transcript holds nothing worth keeping, return empty arrays and only count leftOutCount.
+
+Also label the conversation as a whole, from what was said and how. These are labels, never quotes:
+- mood: the owner's overall mood, an integer from -2 (very low) to 2 (very good), 0 for neutral, null if you cannot tell.
+- moodReason: 10 words or fewer on why, like "deadline pressure, talking over each other", or null.
+- energy: low, medium or high, or null if unclear.
+- activityType: what the owner was doing: building (focused work or making something), meeting, meal, social, exercise, outdoors, commute, errand or other; null if unclear.
+- topicMix: rough fractions of the talk about work, personal life and logistics, adding up to 1.
+- summaryLine: 12 words or fewer on what it was about, plain, no quotes, or null.
+
+For each person in "people", also fill what was said or clearly implied, else null or an empty array:
+- relationship to the owner: work, friend, family or other. roleLabel: 1-3 words like "Co-founder", "Sister", "Climbing buddy".
+- from (where they are from), workingOn (their current job or project), birthday (as said, like "March 3"), howWeMet (how they met the owner): each 12 words or fewer.
+- interests, whatMatters (what they care about), family (their family members named, like "Sister Ana"), lifeEvents (a move, a new job, a wedding, an exam), giftIdeas (things they would love): short phrases, at most 3 each.
+- relationshipSummary: one line of 12 words or fewer about the relationship itself, like "College friend, catches up over climbing", or null.
+- fun: 0-3, how fun and light the time with them felt. overlap: 0-3, how much they and the owner share interests. depth: 0-3, how personal and deep the talk went.
+The privacy rules above still apply: nothing sensitive about them (health, money, relationships) unless they shared it about themselves, and no quotes.`;
 
 const nullableString = { type: ["string", "null"] };
+const stringArray = { type: "array", items: { type: "string" } };
+const signalSchema = { type: "integer", enum: [0, 1, 2, 3] };
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["place", "gist", "leftOutCount", "people", "topics", "items"],
+  required: [
+    "place",
+    "gist",
+    "leftOutCount",
+    "mood",
+    "moodReason",
+    "energy",
+    "activityType",
+    "topicMix",
+    "summaryLine",
+    "people",
+    "topics",
+    "items",
+  ],
   properties: {
     place: nullableString,
     gist: { type: "array", items: { type: "string" } },
     leftOutCount: { type: "integer" },
+    mood: { type: ["integer", "null"], enum: [-2, -1, 0, 1, 2, null] },
+    moodReason: nullableString,
+    energy: { type: ["string", "null"], enum: [...ENERGIES, null] },
+    activityType: { type: ["string", "null"], enum: [...ACTIVITIES, null] },
+    topicMix: {
+      type: "object",
+      additionalProperties: false,
+      required: ["work", "personal", "logistics"],
+      properties: { work: { type: "number" }, personal: { type: "number" }, logistics: { type: "number" } },
+    },
+    summaryLine: nullableString,
     people: {
       type: "array",
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["name", "archetype", "facts"],
+        required: [
+          "name",
+          "archetype",
+          "facts",
+          "relationship",
+          "roleLabel",
+          "from",
+          "workingOn",
+          "birthday",
+          "howWeMet",
+          "interests",
+          "whatMatters",
+          "family",
+          "lifeEvents",
+          "giftIdeas",
+          "relationshipSummary",
+          "fun",
+          "overlap",
+          "depth",
+        ],
         properties: {
           name: { type: "string" },
           archetype: nullableString,
-          facts: { type: "array", items: { type: "string" } },
+          facts: stringArray,
+          relationship: { type: ["string", "null"], enum: [...RELATIONSHIPS, null] },
+          roleLabel: nullableString,
+          from: nullableString,
+          workingOn: nullableString,
+          birthday: nullableString,
+          howWeMet: nullableString,
+          interests: stringArray,
+          whatMatters: stringArray,
+          family: stringArray,
+          lifeEvents: stringArray,
+          giftIdeas: stringArray,
+          relationshipSummary: nullableString,
+          fun: signalSchema,
+          overlap: signalSchema,
+          depth: signalSchema,
         },
       },
     },
@@ -97,6 +178,31 @@ const optString = (x: unknown) => (isString(x) && x.trim().length > 0 ? x.trim()
 const strings = (x: unknown) => (Array.isArray(x) ? x.filter(isString).map((s) => s.trim()).filter(Boolean) : []);
 const short = (s: string) => s.split(/\s+/).length <= MAX_WORDS;
 const array = (x: unknown): Raw[] => (Array.isArray(x) ? x.filter((e): e is Raw => typeof e === "object" && e !== null) : []);
+const unquote = (s: string) => s.replace(/["“”]/g, "").trim();
+const line = (x: unknown, words = MAX_WORDS) => {
+  const s = optString(x);
+  return s === null || s.split(/\s+/).length > words ? null : unquote(s) || null;
+};
+const lines = (x: unknown) => strings(x).filter(short).map(unquote).filter(Boolean).slice(0, MAX_LIST);
+const oneOf = <T extends string>(options: readonly T[], x: unknown) => (options.includes(x as T) ? (x as T) : null);
+const clampInt = (x: unknown, min: number, max: number) =>
+  typeof x === "number" && Number.isFinite(x) ? Math.min(max, Math.max(min, Math.round(x))) : null;
+
+function signal(p: Raw) {
+  const fun = clampInt(p.fun, 0, 3);
+  const overlap = clampInt(p.overlap, 0, 3);
+  const depth = clampInt(p.depth, 0, 3);
+  return fun === null || overlap === null || depth === null ? null : { fun, overlap, depth };
+}
+
+function topicMixOf(x: unknown) {
+  if (typeof x !== "object" || x === null) return null;
+  const r = x as Raw;
+  const part = (y: unknown) => (typeof y === "number" && Number.isFinite(y) && y > 0 ? y : 0);
+  const [work, personal, logistics] = [part(r.work), part(r.personal), part(r.logistics)];
+  const total = work + personal + logistics;
+  return total === 0 ? null : { work: work / total, personal: personal / total, logistics: logistics / total };
+}
 
 const TIME_ZONE = "America/Los_Angeles";
 
@@ -145,11 +251,36 @@ export function validateExtraction(raw: unknown) {
     place: optString(r.place),
     gist: strings(r.gist).filter(short).slice(0, 3),
     leftOutCount: typeof r.leftOutCount === "number" && r.leftOutCount > 0 ? Math.round(r.leftOutCount) : 0,
-    people: array(r.people)
-      .map((p) => ({ name: optString(p.name), archetype: optString(p.archetype), facts: strings(p.facts).filter(short) }))
-      .filter((p): p is { name: string; archetype: string | null; facts: string[] } =>
-        p.name !== null && !/^(you|me|speaker\s*\w?|[a-z])$/i.test(p.name),
-      ),
+    mood: clampInt(r.mood, -2, 2),
+    moodReason: line(r.moodReason, MAX_REASON_WORDS),
+    energy: oneOf(ENERGIES, r.energy),
+    activityType: oneOf(ACTIVITIES, r.activityType),
+    topicMix: topicMixOf(r.topicMix),
+    summaryLine: line(r.summaryLine),
+    people: array(r.people).flatMap((p) => {
+      const name = optString(p.name);
+      if (name === null || /^(you|me|speaker\s*\w?|[a-z])$/i.test(name)) return [];
+      return [
+        {
+          name,
+          archetype: optString(p.archetype),
+          facts: strings(p.facts).filter(short),
+          relationship: oneOf(RELATIONSHIPS, p.relationship),
+          roleLabel: line(p.roleLabel, 4),
+          from: line(p.from),
+          workingOn: line(p.workingOn),
+          birthday: line(p.birthday),
+          howWeMet: line(p.howWeMet),
+          interests: lines(p.interests),
+          whatMatters: lines(p.whatMatters),
+          family: lines(p.family),
+          lifeEvents: lines(p.lifeEvents),
+          giftIdeas: lines(p.giftIdeas),
+          relationshipSummary: line(p.relationshipSummary),
+          signal: signal(p),
+        },
+      ];
+    }),
     topics: array(r.topics)
       .map((t) => ({ label: optString(t.label), subIdeas: strings(t.subIdeas).filter(short) }))
       .filter((t): t is { label: string; subIdeas: string[] } => t.label !== null),
@@ -223,7 +354,13 @@ export async function extractNotes(text: string, context: unknown, apiKey: strin
   const body = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
   const content = body.choices?.[0]?.message?.content;
   if (!content) throw new Error("Extraction returned no content");
-  return validateExtraction(JSON.parse(content));
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    throw new Error("Extraction returned invalid JSON");
+  }
+  return validateExtraction(parsed);
 }
 
 export const MAX_CHUNK_BYTES = 8 * 1024 * 1024;
