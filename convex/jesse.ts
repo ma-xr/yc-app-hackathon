@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
   action,
   internalAction,
@@ -12,6 +12,7 @@ import {
 
 const DEFAULT_MODEL = "gpt-5-mini";
 const MAX_QUESTION_LENGTH = 500;
+const MAX_REPLY_WORDS = 45;
 const SPOKEN_AUDIO_TTL_MS = 10 * 60 * 1000;
 
 const memoryValidator = v.object({
@@ -111,7 +112,7 @@ export const memory = internalQuery({
         id: c._id,
         startedAt: c.startedAt,
         people: c.participantIds.map((id) => names.get(id) ?? "someone"),
-        place: c.place ?? null,
+        place: c.placeName ?? c.place ?? null,
         gist: c.gist,
       })),
       reflections: reflections.map((r) => ({
@@ -178,6 +179,207 @@ export function describeMemory(memory: Memory, timeZone: string) {
     }
   }
   return lines.join("\n");
+}
+
+const DEFAULT_TIME_ZONE = "America/Los_Angeles";
+const MAX_HISTORY_TURNS = 12;
+const MAX_HISTORY_TEXT = 600;
+
+export const MOODS = ["low", "stressed", "calm", "up"] as const;
+export type Mood = (typeof MOODS)[number];
+
+const historyValidator = v.array(
+  v.object({ role: v.union(v.literal("user"), v.literal("jesse")), text: v.string() }),
+);
+export type History = typeof historyValidator.type;
+
+export function safeTimeZone(timeZone: string | undefined) {
+  if (!timeZone) {
+    return DEFAULT_TIME_ZONE;
+  }
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone });
+    return timeZone;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
+
+function zonedParts(ms: number, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(ms);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return { year: get("year"), month: get("month"), day: get("day"), hour: get("hour"), minute: get("minute"), second: get("second") };
+}
+
+function zoneOffsetMs(ms: number, timeZone: string) {
+  const p = zonedParts(ms, timeZone);
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(ms / 1000) * 1000;
+}
+
+function zonedMidnight(year: number, month: number, day: number, timeZone: string) {
+  const guess = Date.UTC(year, month - 1, day);
+  return guess - zoneOffsetMs(guess - zoneOffsetMs(guess, timeZone), timeZone);
+}
+
+export function dayBounds(now: number, timeZone: string) {
+  const { year, month, day } = zonedParts(now, timeZone);
+  return { start: zonedMidnight(year, month, day, timeZone), end: zonedMidnight(year, month, day + 1, timeZone) };
+}
+
+const todayValidator = v.object({
+  conversations: v.array(
+    v.object({
+      startedAt: v.number(),
+      place: v.union(v.string(), v.null()),
+      people: v.array(v.string()),
+      gist: v.array(v.string()),
+    }),
+  ),
+  items: v.array(
+    v.object({
+      kind: v.string(),
+      text: v.string(),
+      person: v.union(v.string(), v.null()),
+      dueAt: v.union(v.number(), v.null()),
+    }),
+  ),
+  people: v.array(
+    v.object({ name: v.string(), archetype: v.union(v.string(), v.null()), facts: v.array(v.string()) }),
+  ),
+});
+
+export type Today = typeof todayValidator.type;
+
+export const today = internalQuery({
+  args: { ownerId: v.id("users"), timeZone: v.string(), now: v.number() },
+  returns: todayValidator,
+  handler: async (ctx, { ownerId, timeZone, now }) => {
+    const { start, end } = dayBounds(now, safeTimeZone(timeZone));
+    const inToday = (ms: number | undefined) => ms !== undefined && ms >= start && ms < end;
+    const conversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_ownerId_and_startedAt", (q) => q.eq("ownerId", ownerId).gte("startedAt", start).lt("startedAt", end))
+      .take(30);
+    const todayConversationIds = new Set<Id<"conversations">>(conversations.map((c) => c._id));
+    const open = await ctx.db
+      .query("items")
+      .withIndex("by_ownerId_and_status", (q) => q.eq("ownerId", ownerId).eq("status", "open"))
+      .take(200);
+    const fromConversations = [];
+    for (const c of conversations) {
+      const items = await ctx.db
+        .query("items")
+        .withIndex("by_conversationId", (q) => q.eq("conversationId", c._id))
+        .take(20);
+      fromConversations.push(...items.filter((i) => i.status === "open" && i.ownerId === ownerId));
+    }
+    const items = new Map(
+      [...fromConversations, ...open]
+        .filter(
+          (i) =>
+            inToday(i.dueAt) ||
+            inToday(i._creationTime) ||
+            (i.conversationId !== undefined && todayConversationIds.has(i.conversationId)),
+        )
+        .map((i) => [i._id, i]),
+    );
+    const todayItems = [...items.values()].slice(0, 40);
+
+    const personIds = new Set<Id<"people">>([
+      ...conversations.flatMap((c) => c.participantIds),
+      ...todayItems.flatMap((i) => (i.personId ? [i.personId] : [])),
+    ]);
+    const people = new Map<Id<"people">, Doc<"people">>();
+    for (const id of [...personIds].slice(0, 25)) {
+      const person = await ctx.db.get(id);
+      if (person && person.ownerId === ownerId) {
+        people.set(id, person);
+      }
+    }
+    return {
+      conversations: conversations.map((c) => ({
+        startedAt: c.startedAt,
+        place: c.placeName ?? c.place ?? null,
+        people: c.participantIds.map((id) => people.get(id)?.name ?? "someone"),
+        gist: c.gist,
+      })),
+      items: todayItems.map((i) => ({
+        kind: i.kind,
+        text: i.text,
+        person: i.personId ? (people.get(i.personId)?.name ?? null) : null,
+        dueAt: i.dueAt ?? null,
+      })),
+      people: [...people.values()].map((p) => ({ name: p.name, archetype: p.archetype ?? null, facts: p.facts })),
+    };
+  },
+});
+
+export function describeToday(today: Today, timeZone: string, now: number) {
+  const day = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "long", month: "long", day: "numeric" }).format(now);
+  const time = (ms: number) => new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(ms);
+  const lines = [`TODAY, ${day} (it's ${time(now)} now)`];
+  if (today.conversations.length === 0 && today.items.length === 0) {
+    lines.push("Nothing from today has been captured yet.");
+    return lines.join("\n");
+  }
+  lines.push("", "WHAT HAPPENED TODAY (Jesse's notes, not quotes)");
+  for (const c of [...today.conversations].sort((a, b) => a.startedAt - b.startedAt)) {
+    const where = c.place ? ` at ${c.place}` : "";
+    lines.push(`- ${time(c.startedAt)}${where} with ${c.people.join(", ") || "someone"}: ${c.gist.join(" ")}`);
+  }
+  if (today.items.length > 0) {
+    lines.push("", "OPEN THINGS FROM TODAY OR DUE TODAY");
+    for (const i of today.items) {
+      const tags = [ITEM_LABELS[i.kind] ?? i.kind, i.person, i.dueAt ? `at ${time(i.dueAt)}` : null].filter(Boolean).join(" · ");
+      lines.push(`- [${tags}] ${i.text}`);
+    }
+  }
+  if (today.people.length > 0) {
+    lines.push("", "PEOPLE FROM TODAY");
+    for (const p of today.people) {
+      const about = [p.archetype, ...p.facts].filter(Boolean).join("; ");
+      lines.push(`- ${p.name}${about ? `: ${about}` : ""}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+export function buildTalkMessages(history: History, question: string) {
+  return [
+    ...history
+      .slice(-MAX_HISTORY_TURNS)
+      .map((turn) => ({ role: turn.role === "jesse" ? ("assistant" as const) : ("user" as const), content: turn.text.trim().slice(0, MAX_HISTORY_TEXT) }))
+      .filter((turn) => turn.content.length > 0),
+    { role: "user" as const, content: question },
+  ];
+}
+
+export function parseTalkReply(raw: unknown): { answer: string; mood: Mood } {
+  const reply = (raw ?? {}) as { answer?: unknown; mood?: unknown };
+  const answer = typeof reply.answer === "string" ? reply.answer.trim() : "";
+  if (!answer) {
+    throw new ConvexError("Jesse lost its train of thought");
+  }
+  const mood = MOODS.find((m) => m === reply.mood) ?? "calm";
+  return { answer: capWords(answer, MAX_REPLY_WORDS), mood };
+}
+
+export function capWords(text: string, max: number) {
+  const words = text.split(/\s+/);
+  if (words.length <= max) return text;
+  const clipped = words.slice(0, max).join(" ");
+  const end = Math.max(clipped.lastIndexOf(". "), clipped.lastIndexOf("! "), clipped.lastIndexOf("? "));
+  if (end > 0) return clipped.slice(0, end + 1);
+  return /[.!?]$/.test(clipped) ? clipped : `${clipped.replace(/[,;:—-]+$/, "")}…`;
 }
 
 function openAiKey() {
@@ -276,27 +478,32 @@ export const liveSources = internalQuery({
   },
 });
 
-const ASK_PROMPT = `You are Jesse, a warm, calm companion who remembers the parts of the user's conversations that matter: promises, plans, and what people care about. You never keep the words themselves, only your own short notes, listed below.
+const ASK_PROMPT = `You are Jesse, the user's close friend. You were there for their day in a way: you keep short notes about who they talked to, where, and what mattered, never the words themselves. You care about them a lot, you're on their side, and they can tell you anything.
 
-Answer the user's question from these notes only. Rules:
-- One to three short sentences, spoken out loud, so no lists, markdown or emoji.
-- Be specific: names, days and times from the notes. Say times the way a friend would ("Thursday at 12:30"), never "due".
-- If the notes don't cover it, say so kindly in one sentence and suggest what they could ask the person.
-- When it fits, nudge gently toward the person ("Maybe text Sam good luck on Friday?").
-- Never invent facts, quotes or sensitive details.
+How you talk:
+- Like a real friend out loud: one to three short sentences, at most 45 words in total and usually under 30. Plain words, contractions. Never formal, never clinical, never a therapist voice.
+- Don't recap everything. Pick the one thing that matters most right now.
+- No lists, markdown or emoji. Never say you're an AI or mention notes, data or memory.
+- Read their mood from what they just said and the tone of today. If they seem low or stressed, slow down, be gentle and reassuring, and don't pile on plans. If they're up, match the energy and be playful. If they're calm, be easy and warm.
+- Bring in specifics from today when they fit: names, places, times ("at lunch with Sam at Blue Bottle"). Weave them in, don't recite the day back.
+- Ask at most one gentle follow-up question, and only when it fits.
+- Only use what's in the notes or what they tell you. Never invent people, events, quotes or details. If you don't know, say so like a friend would.
 
-Reply as JSON: {"answer": string}.`;
+Reply as JSON: {"answer": string, "mood": "low" | "stressed" | "calm" | "up"}, where mood is your read of how they're feeling right now.`;
 
 export const ask = action({
-  args: { question: v.string(), timeZone: v.optional(v.string()) },
-  returns: v.object({ answer: v.string() }),
-  handler: async (ctx, { question, timeZone }) => {
+  args: { question: v.string(), timeZone: v.optional(v.string()), history: v.optional(historyValidator) },
+  returns: v.object({ answer: v.string(), mood: v.union(v.literal("low"), v.literal("stressed"), v.literal("calm"), v.literal("up")) }),
+  handler: async (ctx, { question, timeZone, history }) => {
     const ownerId = await requireUser(ctx);
     const trimmed = question.trim().slice(0, MAX_QUESTION_LENGTH);
     if (!trimmed) {
       throw new ConvexError("Ask Jesse something");
     }
-    const [memory, hits] = await Promise.all([
+    const zone = safeTimeZone(timeZone);
+    const now = Date.now();
+    const [todayContext, memory, hits] = await Promise.all([
+      ctx.runQuery(internal.jesse.today, { ownerId, timeZone: zone, now }),
       ctx.runQuery(internal.jesse.memory, { ownerId }),
       recall(ownerId, trimmed),
     ]);
@@ -304,17 +511,17 @@ export const ask = action({
       ? await ctx.runQuery(internal.jesse.liveSources, { ownerId, sources: hits.map((h) => h.source) })
       : [];
     const recalled = hits.filter((h) => live.includes(h.source)).map((h) => h.text);
-    let notes = describeMemory(memory, timeZone ?? "America/Los_Angeles");
+    let notes = `${describeToday(todayContext, zone, now)}\n\nLONGER-TERM MEMORY (background, use only if it helps)\n${describeMemory(memory, zone)}`;
     if (recalled.length > 0) {
       notes += `\n\nOLDER MEMORIES (long-term recall)\n${recalled.map((r) => `- ${r}`).join("\n")}`;
     }
-    const { answer } = await chatJson<{ answer: string }>(`${ASK_PROMPT}\n\nJESSE'S NOTES\n${notes}`, [
-      { role: "user", content: trimmed },
-    ]);
+    const reply = parseTalkReply(
+      await chatJson<unknown>(`${ASK_PROMPT}\n\nJESSE'S NOTES\n${notes}`, buildTalkMessages(history ?? [], trimmed)),
+    );
     if (process.env.SUPERMEMORY_API_KEY) {
       await ctx.scheduler.runAfter(0, internal.jesse.syncMemory, { ownerId });
     }
-    return { answer };
+    return reply;
   },
 });
 

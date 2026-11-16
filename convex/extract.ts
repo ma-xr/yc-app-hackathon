@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import { action } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { action, type ActionCtx } from "./_generated/server";
 
 const OPENAI = "https://api.openai.com/v1";
 const TRANSCRIBE_MODEL = "gpt-4o-transcribe-diarize";
@@ -169,7 +170,7 @@ export function validateExtraction(raw: unknown) {
   };
 }
 
-async function transcribe(audio: ArrayBuffer, apiKey: string) {
+export async function transcribe(audio: ArrayBuffer, apiKey: string) {
   const form = new FormData();
   form.append("file", new Blob([audio], { type: "audio/mp4" }), "chunk.m4a");
   form.append("model", TRANSCRIBE_MODEL);
@@ -181,17 +182,24 @@ async function transcribe(audio: ArrayBuffer, apiKey: string) {
     body: form,
   });
   if (!res.ok) throw new Error(`Transcription failed with HTTP ${res.status}`);
-  const body = (await res.json()) as { segments?: { speaker?: string; text?: string }[]; text?: string };
+  const body = (await res.json()) as {
+    segments?: { speaker?: string; text?: string; start?: number; end?: number }[];
+    text?: string;
+  };
   const lines: string[] = [];
+  let speechStart: number | null = null;
+  let speechEnd: number | null = null;
   for (const segment of body.segments ?? []) {
     const text = segment.text?.trim();
     if (!text) continue;
+    if (typeof segment.start === "number") speechStart = Math.min(speechStart ?? segment.start, segment.start);
+    if (typeof segment.end === "number") speechEnd = Math.max(speechEnd ?? segment.end, segment.end);
     const speaker = segment.speaker ?? "?";
     const last = lines.length - 1;
     if (last >= 0 && lines[last].startsWith(`${speaker}: `)) lines[last] += ` ${text}`;
     else lines.push(`${speaker}: ${text}`);
   }
-  return lines.length > 0 ? lines.join("\n") : (body.text ?? "").trim();
+  return { text: lines.length > 0 ? lines.join("\n") : (body.text ?? "").trim(), speechStart, speechEnd };
 }
 
 export async function extractNotes(text: string, context: unknown, apiKey: string, source = "Transcript chunk") {
@@ -218,7 +226,18 @@ export async function extractNotes(text: string, context: unknown, apiKey: strin
   return validateExtraction(JSON.parse(content));
 }
 
-const MAX_CHUNK_BYTES = 8 * 1024 * 1024;
+export const MAX_CHUNK_BYTES = 8 * 1024 * 1024;
+
+export async function extractInto(ctx: ActionCtx, conversationId: Id<"conversations">, transcript: string, apiKey: string) {
+  const context = await ctx.runQuery(internal.conversations.extractionContext, { conversationId });
+  if (context === null) return false;
+  const extraction = await extractNotes(transcript, context, apiKey);
+  const planIds = await ctx.runMutation(internal.conversations.applyExtraction, { conversationId, extraction });
+  for (const itemId of planIds) {
+    await ctx.scheduler.runAfter(0, internal.followups.planForItem, { itemId });
+  }
+  return true;
+}
 
 export const processChunk = action({
   args: { conversationId: v.id("conversations"), audio: v.bytes() },
@@ -230,16 +249,9 @@ export const processChunk = action({
     try {
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) throw new Error("OPENAI_API_KEY is not set on this deployment");
-      const transcript = await transcribe(audio, apiKey);
-      if (transcript.length === 0) return null;
-      const context = await ctx.runQuery(internal.conversations.extractionContext, { conversationId });
-      if (context === null) return null;
-      const extraction = await extractNotes(transcript, context, apiKey);
-      const planIds = await ctx.runMutation(internal.conversations.applyExtraction, { conversationId, extraction });
-      applied = true;
-      for (const itemId of planIds) {
-        await ctx.scheduler.runAfter(0, internal.followups.planForItem, { itemId });
-      }
+      const { text } = await transcribe(audio, apiKey);
+      if (text.length === 0) return null;
+      applied = await extractInto(ctx, conversationId, text, apiKey);
       return null;
     } finally {
       if (!applied) await ctx.runMutation(internal.conversations.chunkFailed, { conversationId });

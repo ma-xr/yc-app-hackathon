@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as capture from "../capture.js";
 import type * as connections from "../connections.js";
 import type * as contacts from "../contacts.js";
 import type * as conversations from "../conversations.js";
@@ -48,6 +49,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  capture: typeof capture;
   connections: typeof connections;
   contacts: typeof contacts;
   conversations: typeof conversations;
