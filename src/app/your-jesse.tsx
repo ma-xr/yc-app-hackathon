@@ -121,7 +121,9 @@ function Tile({
       <Animated.View style={art}>
         <OrbArt size={52} look={look} />
       </Animated.View>
-      <Text style={[styles.tileLabel, selected && { color: C.ink }]}>{label}</Text>
+      <Text style={[styles.tileLabel, selected && { color: C.ink }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+        {label}
+      </Text>
     </PressableScale>
   );
 }
