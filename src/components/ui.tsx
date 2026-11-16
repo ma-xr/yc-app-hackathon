@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
-  Pressable,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,25 +10,58 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/icon';
+import { PressableScale } from '@/components/pressable-scale';
+import type { HapticKind } from '@/theme/motion';
 import { avatarColors, C, F, S, shadow, T } from '@/theme/tokens';
 
-export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
+export function Screen({
+  children,
+  scroll = true,
+  edges = ['top'],
+  keyboard = false,
+  contentStyle,
+}: {
+  children: ReactNode;
+  scroll?: boolean;
+  edges?: Edge[];
+  keyboard?: boolean;
+  contentStyle?: StyleProp<ViewStyle>;
+}) {
+  const insets = useSafeAreaInsets();
+  const bottom = edges.includes('bottom') ? insets.bottom : 0;
+  const body = scroll ? (
+    <ScrollView
+      contentContainerStyle={[styles.scroll, { paddingBottom: 32 + bottom }, contentStyle]}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+      contentInsetAdjustmentBehavior="never">
+      {children}
+    </ScrollView>
+  ) : (
+    <View style={[styles.scroll, { flex: 1, paddingBottom: bottom ? bottom + 12 : 32 }, contentStyle]}>{children}</View>
+  );
   return (
-    <SafeAreaView edges={['top']} style={styles.screen}>
-      {scroll ? (
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled">
-          {children}
-        </ScrollView>
+    <View
+      style={[
+        styles.screen,
+        {
+          paddingTop: edges.includes('top') ? insets.top : 0,
+          paddingLeft: edges.includes('left') ? insets.left : 0,
+          paddingRight: edges.includes('right') ? insets.right : 0,
+        },
+      ]}>
+      {keyboard ? (
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          {body}
+        </KeyboardAvoidingView>
       ) : (
-        <View style={[styles.scroll, { flex: 1 }]}>{children}</View>
+        body
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -102,6 +136,8 @@ export function Button({
   icon,
   accessibilityLabel,
   compact,
+  disabled,
+  haptic,
   style,
 }: {
   label: string;
@@ -110,25 +146,31 @@ export function Button({
   icon?: IconName;
   accessibilityLabel?: string;
   compact?: boolean;
+  disabled?: boolean;
+  haptic?: HapticKind | false;
   style?: StyleProp<ViewStyle>;
 }) {
   const v = VARIANTS[variant];
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       onPress={onPress}
-      hitSlop={compact ? 6 : 0}
-      style={({ pressed }) => [
+      disabled={disabled}
+      haptic={haptic ?? (variant === 'primary' || variant === 'dark' ? 'light' : false)}
+      hitSlop={compact ? 4 : 0}
+      style={[
         styles.button,
         compact && styles.buttonCompact,
         { backgroundColor: v.bg, borderColor: v.border },
-        pressed && { opacity: 0.75 },
+        disabled && styles.buttonDisabled,
         style,
       ]}>
       {icon ? <Icon name={icon} size={16} color={v.fg} strokeWidth={2} /> : null}
-      <Text style={[styles.buttonText, { color: v.fg }]}>{label}</Text>
-    </Pressable>
+      <Text style={[styles.buttonText, { color: v.fg }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </PressableScale>
   );
 }
 
@@ -177,6 +219,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   buttonCompact: { minHeight: 36, paddingHorizontal: 12, borderRadius: 12 },
+  buttonDisabled: { opacity: 0.5 },
   buttonText: { fontFamily: F.bold, fontSize: 14 },
   divider: { height: 1, backgroundColor: C.divider },
   empty: {
