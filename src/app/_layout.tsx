@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
 import { api } from '../../convex/_generated/api';
+import { DemoSignIn, IS_DEMO, useSeedNewDemoAccount } from '@/components/demo-sign-in';
 import { SignIn } from '@/components/sign-in';
 import { authStorage, convex } from '@/lib/convex';
 import { useLocationTracking } from '@/lib/location';
@@ -40,7 +41,7 @@ export default function RootLayout() {
       <ThemeProvider value={theme}>
         <AuthLoading>{null}</AuthLoading>
         <Unauthenticated>
-          <SignIn />
+          {IS_DEMO ? <DemoSignIn /> : <SignIn />}
         </Unauthenticated>
         <Authenticated>
           <SignedInApp />
@@ -52,6 +53,7 @@ export default function RootLayout() {
 
 function SignedInApp() {
   useEveningCheckIn();
+  useSeedNewDemoAccount();
   useLocationTracking();
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
