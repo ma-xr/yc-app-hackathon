@@ -4,13 +4,14 @@ import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { fixtureDay, fixtureEvidence, fixtureProfile, fixtureWeek } from '@/components/insights/fixture';
 import { localDateKey } from '@/components/format';
+import { useNow } from '@/data/hooks';
 
 const MODE = __DEV__ ? process.env.EXPO_PUBLIC_INSIGHTS_FIXTURE : undefined;
 const FIXTURE = MODE === 'full' || MODE === 'new';
 const NEW_USER = MODE === 'new';
 
 export function useToday() {
-  return localDateKey();
+  return localDateKey(useNow());
 }
 
 export function useWeek(endDate: string) {

@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { PressableScale } from '@/components/pressable-scale';
 import type { WeekDay } from '@/components/insights/types';
 import { C, F, T } from '@/theme/tokens';
 
@@ -28,7 +29,8 @@ export function WeekStrip({
         const on = d.date === selected;
         const name = label(d.date, today);
         return (
-          <Pressable
+          <PressableScale
+            haptic="selection"
             key={d.date}
             accessibilityRole="tab"
             accessibilityLabel={d.score === null ? `${name}, no data` : `${name}, score ${d.score}`}
@@ -45,7 +47,7 @@ export function WeekStrip({
               />
             </View>
             <Text style={[styles.label, on && { color: C.ink, fontFamily: F.bold }]}>{name}</Text>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>

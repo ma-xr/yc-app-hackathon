@@ -445,3 +445,9 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - Talk replies use a strict JSON schema, which fixes the occasional empty reply ("Sorry, I lost that").
 - The opening line on Talk picks the most emotionally live conversation and is mood-aware ("Hey Ui! Okay, I need to hear about lunch with Sam. That seemed like a good one!"), and is now passed to Jesse as the first turn so a reply to it makes sense.
 - `scripts/jesse-eval.ts`: 12 scripted turns against the real prompt; fails on clock times, lists, meta talk, double questions, wrong mood, or an invented day. Passed 3 runs in a row with gpt-5-mini. tsc and 31 convex-tests pass.
+
+## Insights motion and review fixes (YCAP-27)
+
+- Insights uses the shared motion primitives from #51: PressableScale for rows and toggles, IconButton for the rating thumbs, Enter for the section cards and their rows, SkeletonCard while queries load.
+- Review fixes from #49: Insights follows the clock across midnight (`useNow`) unless you picked another day, person lifts open the contact, and "This is off" no longer claims to save feedback that has no API yet.
+- Verified: tsc and eslint on the Insights files; every view re-rendered on Expo web.

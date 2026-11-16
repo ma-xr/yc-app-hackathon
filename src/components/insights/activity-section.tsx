@@ -1,9 +1,10 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { Desc, FactRow, SectionHead, SplitBar, formatMins } from '@/components/insights/parts';
 import { useEvidenceSheet } from '@/components/insights/sheet-context';
 import type { Day } from '@/components/insights/types';
+import { Enter } from '@/components/motion';
 import { PlaceInsights } from '@/components/place-insights';
 import { Card, Divider } from '@/components/ui';
 import { C } from '@/theme/tokens';
@@ -33,7 +34,7 @@ export function ActivitySection({ day }: { day: Day }) {
           ].map((p) => ({ ...p, display: `${Math.round((p.value / talkTotal) * 100)}%` }))}
         />
         {activity.facts.map((f, i) => (
-          <View key={`${f.place}-${f.activityType}`}>
+          <Enter key={`${f.place}-${f.activityType}`} index={i}>
             {i ? <Divider /> : null}
             <FactRow
               lead={<Icon name="pin" size={18} color={C.accent} />}
@@ -43,7 +44,7 @@ export function ActivitySection({ day }: { day: Day }) {
               reason={f.reason}
               onPress={() => open({ title: f.place, sub: f.reason, conversationIds: f.conversationIds })}
             />
-          </View>
+          </Enter>
         ))}
       </Card>
       <PlaceInsights />

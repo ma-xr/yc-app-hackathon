@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
+import { PressableScale } from '@/components/pressable-scale';
 import { C, F, T } from '@/theme/tokens';
 
 export function formatMins(m: number) {
@@ -79,11 +80,11 @@ export function FactRow({
   accessibilityLabel?: string;
 }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? [title, tag, typeof value === 'string' ? value : null, reason].filter(Boolean).join(', ')}
       onPress={onPress}
-      style={({ pressed }) => [styles.fact, pressed && { opacity: 0.7 }]}>
+      style={styles.fact}>
       <View style={styles.factTop}>
         {lead}
         <Text style={[T.cardTitle, { flexShrink: 1 }]} numberOfLines={2}>
@@ -100,7 +101,7 @@ export function FactRow({
         <View style={{ flexShrink: 0 }}>{typeof value === 'string' ? <Text style={styles.value}>{value}</Text> : value}</View>
       </View>
       {reason ? <Text style={[T.bodySmall, { color: C.muted }]}>{reason}</Text> : null}
-    </Pressable>
+    </PressableScale>
   );
 }
 

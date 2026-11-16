@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { time, weekdayDate } from '@/components/format';
 import { useEvidence, useInsightActions } from '@/components/insights/data';
 import { MoodDot, moodWord } from '@/components/insights/parts';
+import { Enter, SkeletonCard } from '@/components/motion';
 import { EvidenceContext, type EvidenceRequest } from '@/components/insights/sheet-context';
 import { Button, Chip, Divider } from '@/components/ui';
 import { C, F, S, T } from '@/theme/tokens';
@@ -47,14 +48,14 @@ export function EvidenceSheet({ req, onClose }: { req: EvidenceRequest; onClose:
             {req.traitId && !req.conversationIds.length ? 'Where this came from' : 'From these conversations'}
           </Text>
           {moments === undefined ? (
-            <ActivityIndicator color={C.accent} />
+            <SkeletonCard />
           ) : moments.length === 0 ? (
             <Text style={T.meta}>
               {req.traitId ? 'You told Jesse this yourself in Talk.' : 'Worked out from your stored labels. Nothing to replay.'}
             </Text>
           ) : (
             moments.map((m, i) => (
-              <View key={m._id}>
+              <Enter key={m._id} index={i}>
                 {i > 0 ? <Divider /> : null}
                 <View style={styles.moment}>
                   <View style={styles.momentTop}>
@@ -82,12 +83,12 @@ export function EvidenceSheet({ req, onClose }: { req: EvidenceRequest; onClose:
                     </View>
                   ) : null}
                 </View>
-              </View>
+              </Enter>
             ))
           )}
           <Text style={[T.meta, { marginTop: 8 }]}>Labels only. Jesse keeps no transcript.</Text>
         </ScrollView>
-        {flagged ? <Text style={[T.meta, { color: C.greenText }]}>Thanks. Jesse will weigh this less next time.</Text> : null}
+        {flagged ? <Text style={[T.meta, { color: C.greenText }]}>Got it. Tell Jesse in Talk what was off so it can learn from it.</Text> : null}
         <View style={styles.actions}>
           {req.traitId ? (
             <Button
