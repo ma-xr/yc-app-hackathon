@@ -56,6 +56,7 @@ function SignedInApp() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="reflect" options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="your-jesse" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="walk" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

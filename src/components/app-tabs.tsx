@@ -7,11 +7,10 @@ import { Icon, type IconName } from '@/components/icon';
 import { OrbArt } from '@/components/orb';
 import { C, F } from '@/theme/tokens';
 
-const TABS: { name: string; href: '/' | '/plans' | '/people' | '/ideas'; label: string; icon?: IconName }[] = [
-  { name: 'index', href: '/', label: 'Home' },
-  { name: 'plans', href: '/plans', label: 'Plans', icon: 'calendar' },
-  { name: 'people', href: '/people', label: 'People', icon: 'users' },
-  { name: 'ideas', href: '/ideas', label: 'Ideas', icon: 'lightbulb' },
+const TABS: { name: string; href: '/' | '/insights' | '/contacts'; label: string; icon?: IconName }[] = [
+  { name: 'index', href: '/', label: 'Talk' },
+  { name: 'insights', href: '/insights', label: 'Insights', icon: 'sparkle' },
+  { name: 'contacts', href: '/contacts', label: 'Contacts', icon: 'users' },
 ];
 
 export default function AppTabs() {
@@ -22,9 +21,7 @@ export default function AppTabs() {
       <TabList style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }])}>
         {TABS.map((t) => (
           <TabTrigger key={t.name} name={t.name} href={t.href} asChild>
-            <TabButton label={t.label}>
-              {t.icon ? null : <OrbArt size={24} id="tabOrb" />}
-            </TabButton>
+            <TabButton label={t.label} icon={t.icon} />
           </TabTrigger>
         ))}
       </TabList>
@@ -34,12 +31,11 @@ export default function AppTabs() {
 
 function TabButton({
   label,
-  children,
+  icon,
   isFocused,
   ref: _ref,
   ...props
-}: TabTriggerSlotProps & { label: string; children?: ReactNode }) {
-  const tab = TABS.find((t) => t.label === label)!;
+}: TabTriggerSlotProps & { label: string; icon?: IconName; children?: ReactNode }) {
   const color = isFocused ? C.accent : C.mutedIcon;
   return (
     <Pressable
@@ -48,10 +44,10 @@ function TabButton({
       accessibilityLabel={label}
       accessibilityState={{ selected: !!isFocused }}
       style={styles.tab}>
-      <View style={[styles.pill, isFocused && { backgroundColor: C.accentTint }]}>
-        {tab.icon ? <Icon name={tab.icon} color={color} /> : children}
+      <View style={[styles.icon, !isFocused && !icon && styles.dim]}>
+        {icon ? <Icon name={icon} size={22} color={color} /> : <OrbArt size={26} id="tabOrb" />}
       </View>
-      <Text style={[styles.label, { color, fontFamily: isFocused ? F.bold : F.medium }]}>{label}</Text>
+      <Text style={[styles.label, { color, fontFamily: isFocused ? F.semibold : F.medium }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -59,13 +55,13 @@ function TabButton({
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: C.surface,
-    borderTopWidth: 1,
+    backgroundColor: C.bg,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: C.line,
     paddingTop: 8,
-    minHeight: 84,
   },
-  tab: { flex: 1, alignItems: 'center', gap: 4, minHeight: 44 },
-  pill: { width: 56, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  tab: { flex: 1, alignItems: 'center', gap: 3, minHeight: 44 },
+  icon: { height: 28, alignItems: 'center', justifyContent: 'center' },
+  dim: { opacity: 0.6 },
   label: { fontSize: 11 },
 });

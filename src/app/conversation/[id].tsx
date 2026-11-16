@@ -51,7 +51,7 @@ export default function ConversationScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/plans'))}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
           style={styles.iconButton}>
           <Icon name="chevronLeft" color={C.ink} />
         </Pressable>
@@ -138,14 +138,9 @@ export default function ConversationScreen() {
             <SectionLabel>Topics</SectionLabel>
             <View style={styles.topics}>
               {topicNames.map((name) => (
-                <Pressable
-                  key={name}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open ${name} in Ideas`}
-                  onPress={() => router.push('/ideas')}
-                  style={styles.topic}>
+                <View key={name} style={styles.topic}>
                   <Text style={styles.topicText}>{name}</Text>
-                </Pressable>
+                </View>
               ))}
             </View>
           </>

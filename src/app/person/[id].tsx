@@ -38,7 +38,7 @@ export default function PersonScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back to people"
-          onPress={() => (router.canGoBack() ? router.back() : router.replace("/people"))}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/contacts"))}
           style={styles.iconButton}
         >
           <Icon name="chevronLeft" color={C.ink} />
