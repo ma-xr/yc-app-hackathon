@@ -150,8 +150,8 @@ describe("places authz", () => {
       await alice.mutation(api.places.deleteHistory, {});
       await t.finishAllScheduledFunctions(vi.runAllTimers);
 
-      expect(await alice.query(api.places.status, {})).toEqual({ lastPingAt: null });
-      expect(await bob.query(api.places.status, {})).toEqual({ lastPingAt: now });
+      expect(await alice.query(api.places.status, {})).toEqual({ ownerId: aliceId, lastPingAt: null });
+      expect(await bob.query(api.places.status, {})).toEqual({ ownerId: bobId, lastPingAt: now });
       const [a, b] = await t.run(async (ctx) => [await ctx.db.get("conversations", mine), await ctx.db.get("conversations", theirs)]);
       expect(a?.location).toBeUndefined();
       expect(a?.placeName).toBeUndefined();

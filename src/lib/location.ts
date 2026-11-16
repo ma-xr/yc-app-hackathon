@@ -13,6 +13,8 @@ import { getPref, setPref } from '@/lib/prefs';
 
 const TASK = 'jesse-background-location';
 const PAUSED_KEY = 'jesse.locationPaused';
+const OWNER_KEY = 'jesse.locationOwner';
+const TAG_RETRY_MS = 30_000;
 const SAMPLE_MS = 5 * 60_000;
 const MOVE_M = 150;
 const SAME_SPOT_M = 50;
@@ -30,6 +32,7 @@ type Ping = {
   ts: number;
   placeName?: string;
   source: 'foreground' | 'background' | 'conversation';
+  owner?: string;
 };
 
 export type LocationStatus = {
@@ -112,16 +115,18 @@ export async function enableBackgroundLocation() {
 }
 
 export async function setLocationPaused(paused: boolean) {
+  if (paused) tracking = false;
+  setStatus({ paused });
   await setPref(PAUSED_KEY, paused ? '1' : '0');
   if (paused) {
     await stopBackground();
     await clearQueue();
   }
-  setStatus({ paused });
 }
 
-function toPing(location: Location.LocationObject, source: Ping['source']): Ping {
+function toPing(location: Location.LocationObject, source: Ping['source'], pingOwner: string): Ping {
   return {
+    owner: pingOwner,
     lat: location.coords.latitude,
     lng: location.coords.longitude,
     accuracy: location.coords.accuracy ?? undefined,
@@ -193,6 +198,11 @@ function serial<T>(fn: () => Promise<T>) {
 }
 
 let upload: ((pings: Ping[]) => Promise<unknown>) | null = null;
+let owner: string | null = null;
+let tracking = false;
+let flushing = false;
+
+const pingKey = (p: Ping) => `${p.owner}|${p.source}|${p.ts}|${p.lat}|${p.lng}`;
 
 function enqueue(pings: Ping[]) {
   return serial(() => writeQueue([...readQueue(), ...pings]));
@@ -202,29 +212,39 @@ function clearQueue() {
   return serial(() => writeQueue([]));
 }
 
-function flush() {
-  return serial(async () => {
-    const send = upload;
-    let queue = readQueue();
-    while (send && queue.length) {
-      const batch = queue.slice(0, UPLOAD_BATCH);
+async function flush() {
+  if (flushing) return;
+  flushing = true;
+  try {
+    while (upload && owner) {
+      const send = upload;
+      const current = owner;
+      const batch = await serial(async () => {
+        const queue = readQueue();
+        const mine = queue.filter((p) => p.owner === current);
+        if (mine.length !== queue.length) await writeQueue(mine);
+        return mine.slice(0, UPLOAD_BATCH);
+      });
+      if (!batch.length) return;
       for (const ping of batch) ping.placeName ??= await placeName(ping.lat, ping.lng);
       try {
-        await send(batch);
+        await send(batch.map(({ owner: _owner, ...ping }) => ping));
       } catch {
-        await writeQueue(queue);
         return;
       }
-      queue = queue.slice(batch.length);
+      const sent = new Set(batch.map(pingKey));
+      await serial(() => writeQueue(readQueue().filter((p) => !sent.has(pingKey(p)))));
     }
-    await writeQueue(queue);
-  });
+  } finally {
+    flushing = false;
+  }
 }
 
 let last: Ping | null = null;
 
 async function capture(location: Location.LocationObject) {
-  const ping = toPing(location, 'foreground');
+  if (!tracking || !owner) return;
+  const ping = toPing(location, 'foreground', owner);
   if (last && ping.ts - last.ts < MIN_GAP_MS && distanceM(last, ping) < SAME_SPOT_M) return;
   last = ping;
   await enqueue([ping]);
@@ -260,31 +280,43 @@ if (canRunInBackground) {
   TaskManager.defineTask<{ locations?: Location.LocationObject[] }>(TASK, async ({ data, error }) => {
     if (error || !data?.locations?.length) return;
     if ((await getPref(PAUSED_KEY)) === '1') return;
-    await enqueue(data.locations.map((l) => toPing(l, 'background')));
+    const signedIn = owner ?? (await getPref(OWNER_KEY));
+    if (!signedIn) return;
+    await enqueue(data.locations.map((l) => toPing(l, 'background', signedIn)));
     await flush();
   });
 }
 
 async function tagConversation(
   conversationId: Id<'conversations'>,
-  record: (args: { pings: Ping[]; conversationId: Id<'conversations'> }) => Promise<unknown>,
+  record: (args: { pings: Omit<Ping, 'owner'>[]; conversationId: Id<'conversations'> }) => Promise<unknown>,
 ) {
   const location =
     (await Location.getLastKnownPositionAsync({ maxAge: 2 * 60_000, requiredAccuracy: 200 }).catch(() => null)) ??
     (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(() => null));
-  if (!location) return;
-  const ping = toPing(location, 'conversation');
+  const current = owner;
+  if (!location || !tracking || !current) return false;
+  const { owner: _owner, ...ping } = toPing(location, 'conversation', current);
   ping.placeName = await placeName(ping.lat, ping.lng);
-  last = ping;
-  await record({ pings: [ping], conversationId }).catch(() => enqueue([{ ...ping, source: 'foreground' }]));
+  if (!tracking || owner !== current) return false;
+  try {
+    await record({ pings: [ping], conversationId });
+  } catch {
+    return false;
+  }
+  last = { ...ping, owner: current };
+  return true;
 }
 
 export function useLocationTracking() {
   const record = useMutation(api.places.record);
+  const info = useQuery(api.places.status, {});
   const pending = useQuery(api.places.pendingTag, {});
   const { ready, permission, paused, background, backgroundAvailable } = useLocationStatus();
   const tagged = useRef(new Set<string>());
-  const active = ready && permission === 'granted' && !paused;
+  const tagging = useRef(new Set<string>());
+  const ownerId = info?.ownerId ?? null;
+  const active = ready && permission === 'granted' && !paused && ownerId !== null;
 
   useEffect(() => {
     void refreshLocationStatus();
@@ -295,36 +327,45 @@ export function useLocationTracking() {
     });
     return () => {
       sub.remove();
+      tracking = false;
+      owner = null;
+      void setPref(OWNER_KEY, '');
+      void stopBackground();
       void clearQueue();
     };
   }, []);
 
   useEffect(() => {
+    if (!ownerId) return;
+    owner = ownerId;
+    void setPref(OWNER_KEY, ownerId);
     upload = (pings) => record({ pings });
     void flush();
     return () => {
       upload = null;
     };
-  }, [record]);
+  }, [ownerId, record]);
 
   useEffect(() => {
     if (!active) return;
+    tracking = true;
     let cancelled = false;
     let subscription: Location.LocationSubscription | null = null;
     const sample = () =>
       Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
-        .then(capture)
+        .then((location) => (cancelled ? undefined : capture(location)))
         .catch(() => {});
     void sample();
     void Location.watchPositionAsync(
       { accuracy: Location.Accuracy.Balanced, distanceInterval: MOVE_M, timeInterval: SAMPLE_MS },
-      (location) => void capture(location),
+      (location) => void (cancelled ? undefined : capture(location)),
     )
       .then((s) => (cancelled ? s.remove() : (subscription = s)))
       .catch(() => {});
     const timer = setInterval(sample, SAMPLE_MS);
     return () => {
       cancelled = true;
+      tracking = false;
       clearInterval(timer);
       subscription?.remove();
     };
@@ -339,8 +380,17 @@ export function useLocationTracking() {
   useEffect(() => {
     if (!active || !pending) return;
     const { conversationId, startedAt } = pending;
-    if (tagged.current.has(conversationId) || Date.now() - startedAt > TAG_WINDOW_MS) return;
-    tagged.current.add(conversationId);
-    void tagConversation(conversationId, record);
+    const attempt = () => {
+      if (tagged.current.has(conversationId) || tagging.current.has(conversationId)) return;
+      if (Date.now() - startedAt > TAG_WINDOW_MS) return;
+      tagging.current.add(conversationId);
+      void tagConversation(conversationId, record).then((done) => {
+        tagging.current.delete(conversationId);
+        if (done) tagged.current.add(conversationId);
+      });
+    };
+    attempt();
+    const timer = setInterval(attempt, TAG_RETRY_MS);
+    return () => clearInterval(timer);
   }, [active, pending, record]);
 }

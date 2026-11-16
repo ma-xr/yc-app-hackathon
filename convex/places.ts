@@ -92,7 +92,7 @@ export const pendingTag = query({
 
 export const status = query({
   args: {},
-  returns: v.object({ lastPingAt: v.union(v.number(), v.null()) }),
+  returns: v.object({ ownerId: v.id("users"), lastPingAt: v.union(v.number(), v.null()) }),
   handler: async (ctx) => {
     const ownerId = await requireUser(ctx);
     const last = await ctx.db
@@ -100,7 +100,7 @@ export const status = query({
       .withIndex("by_ownerId_and_ts", (q) => q.eq("ownerId", ownerId))
       .order("desc")
       .first();
-    return { lastPingAt: last?.ts ?? null };
+    return { ownerId, lastPingAt: last?.ts ?? null };
   },
 });
 
