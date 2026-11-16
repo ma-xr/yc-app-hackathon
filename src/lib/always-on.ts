@@ -44,7 +44,7 @@ async function read(uri: string) {
   return new File(uri).arrayBuffer();
 }
 
-export function useAlwaysOnJesse(onAddressed: (question: string) => void) {
+export function useAlwaysOnJesse(onAddressed: (question: string) => void, onHeard?: (text: string) => boolean) {
   const recorder = useAudioRecorder(SPEECH);
   const transcribe = useAction(api.jesse.transcribe);
   const processChunk = useAction(api.extract.processChunk);
@@ -63,10 +63,12 @@ export function useAlwaysOnJesse(onAddressed: (question: string) => void) {
   const extracting = useRef(new Set<Promise<unknown>>());
   const carry = useRef('');
   const onAddressedRef = useRef(onAddressed);
+  const onHeardRef = useRef(onHeard);
   const rollRef = useRef<() => Promise<void>>(async () => {});
   useEffect(() => {
     onAddressedRef.current = onAddressed;
-  }, [onAddressed]);
+    onHeardRef.current = onHeard;
+  }, [onAddressed, onHeard]);
 
   const schedule = useCallback(() => {
     timer.current = setTimeout(() => void rollRef.current(), CHUNK_MS);
@@ -94,6 +96,7 @@ export function useAlwaysOnJesse(onAddressed: (question: string) => void) {
           return;
         }
         quiet.current = 0;
+        if (onHeardRef.current?.(heard)) return;
         const joined = `${carry.current} ${heard}`.trim();
         const question = addressedTo(joined);
         if (!conversation.current && (question || heardWake(joined))) {

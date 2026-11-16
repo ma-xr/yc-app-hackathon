@@ -22,7 +22,7 @@ export function ReflectionCard({ question }: { question: string }) {
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: C.ink, borderRadius: S.cardRadius, padding: 20, gap: 12 },
-  question: { fontFamily: F.display, fontSize: 20, lineHeight: 26, color: '#FFFFFF' },
+  card: { backgroundColor: C.night, borderRadius: S.cardRadius, padding: 20, gap: 12 },
+  question: { fontFamily: F.display, fontSize: 20, lineHeight: 26, color: C.onNight },
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
 });

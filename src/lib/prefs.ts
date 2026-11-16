@@ -26,4 +26,5 @@ export const PREF = {
   username: 'jesse.username',
   voiceMuted: 'jesse.voiceMuted',
   greetedOn: 'jesse.greetedOn',
+  look: 'jesse.look',
 };

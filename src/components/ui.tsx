@@ -133,11 +133,11 @@ export function Button({
 }
 
 const VARIANTS: Record<ButtonVariant, { bg: string; fg: string; border: string }> = {
-  primary: { bg: C.accent, fg: '#FFFFFF', border: C.accent },
+  primary: { bg: C.accent, fg: C.onAccent, border: C.accent },
   outline: { bg: C.surface, fg: C.ink, border: C.chipBorder },
-  dark: { bg: C.ink, fg: '#FFFFFF', border: C.ink },
+  dark: { bg: C.night, fg: C.onNight, border: C.night },
   ghost: { bg: 'transparent', fg: C.accent, border: 'transparent' },
-  outlineLight: { bg: 'transparent', fg: '#FFFFFF', border: 'rgba(255,255,255,0.35)' },
+  outlineLight: { bg: 'transparent', fg: C.onNight, border: 'rgba(255,255,255,0.35)' },
 };
 
 export function Divider() {

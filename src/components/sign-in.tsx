@@ -5,14 +5,14 @@ import {
   type SignUpWithUsernamePasswordResult,
 } from '@convex-dev/auth/methods/username-password/react';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, useColorScheme } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { api } from '../../convex/_generated/api';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { OrbArt } from '@/components/orb';
+import { Button } from '@/components/ui';
 import { PREF, setPref } from '@/lib/prefs';
+import { C, F, T } from '@/theme/tokens';
 
 type AuthError = Extract<
   SignInWithUsernamePasswordResult | SignUpWithUsernamePasswordResult,
@@ -55,8 +55,6 @@ function errorMessage(userError: AuthError) {
 }
 
 export function SignIn() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const { signIn, pending: signInPending } = useSignInWithUsernamePassword(api.auth);
   const { signUp, pending: signUpPending } = useSignUpWithUsernamePassword(api.auth);
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
@@ -76,16 +74,22 @@ export function SignIn() {
     void setPref(PREF.username, username.trim());
   };
 
-  const inputStyle = [styles.input, { color: colors.text, borderColor: colors.backgroundSelected }];
-
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.form}>
-        <ThemedText type="title">{mode === 'signIn' ? 'Log in' : 'Sign up'}</ThemedText>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.form}>
+        <View style={{ alignItems: 'center' }}>
+          <OrbArt size={150} pose="happy" />
+        </View>
+        <Text style={styles.title} accessibilityRole="header">
+          {mode === 'signIn' ? 'Welcome back.' : 'Meet Jesse.'}
+        </Text>
+        <Text style={[T.body, { color: C.muted, marginTop: -6 }]}>
+          {mode === 'signIn' ? 'Log in to walk home with Jesse.' : 'Jesse remembers the people you talk with, so you can show up for them.'}
+        </Text>
         <TextInput
-          style={inputStyle}
+          style={styles.input}
           placeholder="Username"
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={C.muted}
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
@@ -95,9 +99,9 @@ export function SignIn() {
           editable={!pending}
         />
         <TextInput
-          style={inputStyle}
+          style={styles.input}
           placeholder="Password"
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={C.muted}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -106,51 +110,44 @@ export function SignIn() {
           editable={!pending}
           onSubmitEditing={submit}
         />
-        {error ? <ThemedText style={{ color: 'red' }}>{error}</ThemedText> : null}
-        <Pressable onPress={submit} disabled={pending}>
-          <ThemedView type="backgroundSelected" style={styles.button}>
-            <ThemedText type="smallBold">
-              {pending ? 'Please wait…' : mode === 'signIn' ? 'Log in' : 'Create account'}
-            </ThemedText>
-          </ThemedView>
-        </Pressable>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Button
+          label={pending ? 'Please wait…' : mode === 'signIn' ? 'Log in' : 'Create account'}
+          onPress={pending ? undefined : submit}
+          style={styles.submit}
+        />
         <Pressable
           onPress={() => {
             setError(null);
             setMode(mode === 'signIn' ? 'signUp' : 'signIn');
           }}
-          disabled={pending}>
-          <ThemedText type="link">
+          disabled={pending}
+          style={{ alignSelf: 'center' }}>
+          <Text style={styles.link}>
             {mode === 'signIn' ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
-          </ThemedText>
+          </Text>
         </Pressable>
-      </SafeAreaView>
-    </ThemedView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  form: {
-    width: '100%',
-    maxWidth: MaxContentWidth,
-    padding: Spacing.four,
-    gap: Spacing.three,
-  },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg },
+  form: { width: '100%', maxWidth: 420, padding: 24, gap: 14 },
+  title: { fontFamily: F.display, fontSize: 34, lineHeight: 40, color: C.ink },
   input: {
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    fontFamily: F.regular,
     fontSize: 16,
+    color: C.ink,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
-  button: {
-    alignItems: 'center',
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.two,
-  },
+  error: { fontFamily: F.medium, fontSize: 14, color: C.amberText },
+  submit: { minHeight: 54, marginTop: 4 },
+  link: { fontFamily: F.semibold, fontSize: 14, color: C.accent },
 });

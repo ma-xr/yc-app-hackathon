@@ -104,18 +104,18 @@ export default function Plans() {
               style={[
                 styles.day,
                 isSelected
-                  ? { backgroundColor: C.ink, borderColor: C.ink, borderWidth: 1 }
+                  ? { backgroundColor: C.accent, borderColor: C.accent, borderWidth: 1 }
                   : isToday
                     ? { borderColor: C.accent, borderWidth: 2 }
                     : { borderColor: C.line, borderWidth: 1 },
               ]}>
-              <Text style={[styles.dayWeekday, { color: isSelected ? C.darkCardMuted : C.muted }]}>{weekday(d)}</Text>
-              <Text style={[styles.dayNumber, { color: isSelected ? '#FFFFFF' : C.ink }]}>{new Date(d).getDate()}</Text>
+              <Text style={[styles.dayWeekday, { color: isSelected ? C.onAccent : C.muted }]}>{weekday(d)}</Text>
+              <Text style={[styles.dayNumber, { color: isSelected ? C.onAccent : C.ink }]}>{new Date(d).getDate()}</Text>
               <View
                 style={[
                   styles.dot,
-                  filled && { backgroundColor: isSelected ? '#FFFFFF' : C.ink },
-                  hollow && { borderWidth: 2, borderColor: isSelected ? '#FFFFFF' : C.accent },
+                  filled && { backgroundColor: isSelected ? C.onAccent : C.ink },
+                  hollow && { borderWidth: 2, borderColor: isSelected ? C.onAccent : C.accent },
                 ]}
               />
             </Pressable>
