@@ -370,3 +370,10 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - Pausing Jesse while a chunk is still being transcribed no longer flips it back to Listening or answers while paused: transcriptions that finish after a stop are dropped.
 - Ending a capture now waits for in-flight extraction requests before closing the conversation, so the last chunk's notes are not rejected.
 - Verified: tsc and expo lint clean.
+
+## Walk home redesign and Your Jesse (YCAP-9)
+
+- New `walk` theme, now the default: a warm dark-brown background, cream Fraunces serif headlines, coral pill buttons. Every screen picks it up through the tokens, and hard-coded whites became `onAccent` / `onNight` tokens.
+- Home is now the walk. The capybara sits in the centre, and under it a route card is built from real open items: up to three people with something open, then tonight's reflection as "One thought". "Start the walk" goes stop by stop: "Stop 2 of 4 · Mom", a progress bar, Jesse's line in big serif quotes (spoken unless voice is off), and Yes or Skip. Yes runs the existing action: send the drafted text, add the plan to the calendar, mark it done, or open the check-in. A spoken "yes" or "skip" works too, through the always-on listener; wake word, addressed replies and TTS are unchanged.
+- "Your Jesse" customizer (`src/app/your-jesse.tsx`) with a live preview. Fur: six clay recolours made from the same art. Wearing: a scarf, beanie, headphones or flower, drawn in react-native-svg with clay-style gradients, in five colours. Mood: calm, happy or sleepy. Glow: five halo colours. The choice is saved on the device with the existing SecureStore/localStorage prefs, and the customised capybara shows everywhere, tab icon included.
+- No new packages and no Convex changes. tsc and expo lint are clean.

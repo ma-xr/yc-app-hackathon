@@ -114,7 +114,7 @@ export default function McpScreen() {
           onPress={() => setAllowWrite(!allowWrite)}
           style={styles.toggleRow}>
           <View style={[styles.box, allowWrite && styles.boxOn]}>
-            {allowWrite ? <Icon name="check" size={16} color="#FFFFFF" strokeWidth={2.5} /> : null}
+            {allowWrite ? <Icon name="check" size={16} color={C.onAccent} strokeWidth={2.5} /> : null}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={T.cardTitle}>Allow Claude to add notes</Text>

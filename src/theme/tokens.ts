@@ -23,6 +23,9 @@ const BASE = {
   disabled: '#B5AFCB',
   orbDeep: '#2A1F7A',
   neutralChip: '#ECEAF4',
+  onAccent: '#FFFFFF',
+  night: '#1B1830',
+  onNight: '#FFFFFF',
 };
 
 type Palette = { [K in keyof typeof BASE]: string };
@@ -38,6 +41,46 @@ type Theme = {
 };
 
 const THEMES: Record<string, Theme> = {
+  walk: {
+    colors: {
+      bg: '#2D231E',
+      surface: '#3A2E27',
+      ink: '#F6EADB',
+      inkSoft: '#E6D6C4',
+      muted: '#B9A593',
+      mutedIcon: '#A8937F',
+      line: '#4A3B32',
+      divider: '#43362E',
+      chipBorder: '#5A483D',
+      accent: '#F2A07A',
+      accentDeep: '#F8BE9E',
+      accentTint: '#4E3529',
+      accentWash: '#41322A',
+      amberText: '#F3CB8E',
+      amberTint: '#4A3B24',
+      amberDot: '#E0A24A',
+      greenText: '#AEDCC0',
+      greenTint: '#2F4236',
+      darkCardMuted: '#CDBBA9',
+      disabled: '#6E5C50',
+      orbDeep: '#7A3420',
+      neutralChip: '#463830',
+      onAccent: '#2D231E',
+      night: '#231B17',
+      onNight: '#F6EADB',
+    },
+    orb: [
+      { offset: '0%', color: '#FFF3E6' },
+      { offset: '18%', color: '#FFD3B5' },
+      { offset: '45%', color: '#F2A07A' },
+      { offset: '72%', color: '#C0613F' },
+      { offset: '100%', color: '#7A3420' },
+    ],
+    display: 'Fraunces_600SemiBold',
+    cardRadius: 26,
+    buttonRadius: 28,
+    shadow: { color: '#000000', opacity: 0.25, radius: 18, y: 8 },
+  },
   base: {
     colors: {},
     orb: [
@@ -156,7 +199,7 @@ const THEMES: Record<string, Theme> = {
   },
 };
 
-const THEME = THEMES[process.env.EXPO_PUBLIC_THEME ?? 'C'] ?? THEMES.base;
+const THEME = THEMES[process.env.EXPO_PUBLIC_THEME ?? 'walk'] ?? THEMES.base;
 
 export const C = { ...BASE, ...THEME.colors } as Palette;
 

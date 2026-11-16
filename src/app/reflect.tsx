@@ -284,9 +284,9 @@ const styles = StyleSheet.create({
   close: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   closeText: { fontSize: 15, fontWeight: '700', color: C.accent },
   content: { paddingHorizontal: 20, paddingBottom: 24, gap: 14 },
-  questionCard: { backgroundColor: C.ink, borderRadius: 20, padding: 20, gap: 10 },
+  questionCard: { backgroundColor: C.night, borderRadius: 20, padding: 20, gap: 10 },
   questionLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.72, color: C.darkCardMuted },
-  question: { fontFamily: HEADING, fontSize: 20, lineHeight: 26, fontWeight: '700', color: C.surface },
+  question: { fontFamily: HEADING, fontSize: 20, lineHeight: 26, fontWeight: '700', color: C.onNight },
   questionHint: { fontSize: 13, color: C.darkCardMuted },
   bubble: { maxWidth: '86%', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 12 },
   jesseBubble: {

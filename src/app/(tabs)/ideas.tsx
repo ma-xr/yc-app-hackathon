@@ -43,7 +43,7 @@ function Folder({ topic, open, onToggle }: { topic: Topic; open: boolean; onTogg
         onPress={onToggle}
         style={styles.folderHead}>
         <View style={[styles.folderTile, { backgroundColor: open ? C.accent : C.accentWash }]}>
-          <Icon name="folder" size={20} color={open ? '#FFFFFF' : C.accent} />
+          <Icon name="folder" size={20} color={open ? C.onAccent : C.accent} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={T.cardTitle}>{topic.label}</Text>

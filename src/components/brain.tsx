@@ -97,7 +97,7 @@ function Bubble({
   const { v, reduce } = useLoop(5500 + index * 700, index * 500);
   const drift = useAnimatedStyle(() => (reduce ? {} : { transform: [{ translateY: -6 * v.value }] }));
   const fontSize = slot.size >= 100 ? 15 : slot.size >= 85 ? 12 : slot.size >= 75 ? 11 : 10;
-  const fg = selected ? '#FFFFFF' : C.orbDeep;
+  const fg = selected ? C.onAccent : C.accentDeep;
   return (
     <Animated.View
       style={[{ position: 'absolute', left: slot.x - slot.size / 2, top: slot.y - slot.size / 2 }, drift]}>
@@ -110,7 +110,7 @@ function Bubble({
           width: slot.size,
           height: slot.size,
           borderRadius: slot.size / 2,
-          backgroundColor: selected ? C.accent : '#FFFFFF',
+          backgroundColor: selected ? C.accent : C.surface,
           borderWidth: 2,
           borderColor: C.accent,
           alignItems: 'center',
