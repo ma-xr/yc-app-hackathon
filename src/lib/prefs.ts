@@ -27,4 +27,5 @@ export const PREF = {
   voiceMuted: 'jesse.voiceMuted',
   greetedOn: 'jesse.greetedOn',
   look: 'jesse.look',
+  capturePaused: 'jesse.capturePaused',
 };
