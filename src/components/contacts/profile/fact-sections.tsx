@@ -13,7 +13,7 @@ export function FactSections({ data, now }: { data: ContactProfile; now: number 
   const theyOwe = data.openPromises.filter((p) => p.direction === 'they');
 
   const birthday = () => {
-    if (!data.birthday) return null;
+    if (!data.birthday) return data.birthdayText ? facts([data.birthdayText]) : null;
     const { month, day, year } = data.birthday;
     const days = nextBirthdayInDays(data.birthday, now);
     const extra =

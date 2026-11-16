@@ -28,6 +28,7 @@ export type ContactProfile = ContactSummary & {
   phones: string[];
   emails: string[];
   birthday?: { month: number; day: number; year?: number };
+  birthdayText?: Fact;
   knownSince?: number;
   from?: Fact;
   workingOn?: Fact;
@@ -82,6 +83,7 @@ export type MockContact = Omit<
   | 'avoid'
   | 'openPromises'
   | 'relationship'
+  | 'birthdayText'
 > & {
   relationship: string;
   lastAgo?: number;
