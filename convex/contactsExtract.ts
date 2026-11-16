@@ -188,7 +188,7 @@ export const applyContactExtraction = internalMutation({
       .withIndex("by_conversationId", (q) => q.eq("conversationId", conversationId))
       .take(50);
     const minutes = Math.max(1, Math.round(((conversation.endedAt ?? now) - conversation.startedAt) / 60000));
-    const placeName = (conversation as Doc<"conversations"> & { placeName?: string }).placeName ?? conversation.place;
+    const placeName = conversation.placeName ?? conversation.place;
 
     for (const heard of people) {
       const person = await findOrCreatePerson(ctx, ownerId, known, heard.name, now);

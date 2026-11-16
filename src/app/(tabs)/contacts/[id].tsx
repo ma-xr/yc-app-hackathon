@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
 import { FactSections } from '@/components/contacts/profile/fact-sections';
-import { FIXTURE_HISTORY, FIXTURE_PROFILE } from '@/components/contacts/profile/fixture';
 import { monthKey } from '@/components/contacts/profile/format';
 import { HistoryEntry, MonthHeader } from '@/components/contacts/profile/history-entry';
 import { ProfileHeader } from '@/components/contacts/profile/profile-header';
@@ -16,19 +15,13 @@ import { Icon } from '@/components/icon';
 import { useNow } from '@/data/hooks';
 import { C, S, T } from '@/theme/tokens';
 
-const USE_FIXTURE = __DEV__ && process.env.EXPO_PUBLIC_CONTACT_FIXTURE === '1';
-
 export default function ContactScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const personId = id as Id<'people'>;
   const router = useRouter();
-  const live = useQuery(api.contacts.get, USE_FIXTURE ? 'skip' : { personId });
-  const history = usePaginatedQuery(api.contacts.history, USE_FIXTURE ? 'skip' : { personId }, {
-    initialNumItems: 20,
-  });
-  const data = USE_FIXTURE ? FIXTURE_PROFILE : live;
-  const results = USE_FIXTURE ? FIXTURE_HISTORY : history.results;
-  const status = USE_FIXTURE ? 'Exhausted' : history.status;
+  const data = useQuery(api.contacts.get, { personId });
+  const history = usePaginatedQuery(api.contacts.history, { personId }, { initialNumItems: 20 });
+  const { results, status } = history;
   const now = useNow();
 
   const sections = useMemo(() => {

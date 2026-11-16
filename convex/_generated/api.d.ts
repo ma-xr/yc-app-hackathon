@@ -10,6 +10,9 @@
 
 import type * as auth from "../auth.js";
 import type * as connections from "../connections.js";
+import type * as contacts from "../contacts.js";
+import type * as contactsExtract from "../contactsExtract.js";
+import type * as contactsSeed from "../contactsSeed.js";
 import type * as conversations from "../conversations.js";
 import type * as crons from "../crons.js";
 import type * as extract from "../extract.js";
@@ -27,10 +30,13 @@ import type * as jesse from "../jesse.js";
 import type * as keiki from "../keiki.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_contactStats from "../lib/contactStats.js";
+import type * as lib_contactSync from "../lib/contactSync.js";
+import type * as lib_places from "../lib/places.js";
 import type * as mcp_memory from "../mcp/memory.js";
 import type * as mcp_server from "../mcp/server.js";
 import type * as mcp_tokens from "../mcp/tokens.js";
 import type * as people from "../people.js";
+import type * as places from "../places.js";
 import type * as reflections from "../reflections.js";
 import type * as scenarios from "../scenarios.js";
 import type * as seed from "../seed.js";
@@ -46,6 +52,9 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   connections: typeof connections;
+  contacts: typeof contacts;
+  contactsExtract: typeof contactsExtract;
+  contactsSeed: typeof contactsSeed;
   conversations: typeof conversations;
   crons: typeof crons;
   extract: typeof extract;
@@ -63,10 +72,13 @@ declare const fullApi: ApiFromModules<{
   keiki: typeof keiki;
   "lib/auth": typeof lib_auth;
   "lib/contactStats": typeof lib_contactStats;
+  "lib/contactSync": typeof lib_contactSync;
+  "lib/places": typeof lib_places;
   "mcp/memory": typeof mcp_memory;
   "mcp/server": typeof mcp_server;
   "mcp/tokens": typeof mcp_tokens;
   people: typeof people;
+  places: typeof places;
   reflections: typeof reflections;
   scenarios: typeof scenarios;
   seed: typeof seed;

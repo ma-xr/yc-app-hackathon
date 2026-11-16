@@ -68,7 +68,16 @@
           "enableRemoteNotifications": false
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Jesse notes where your conversations happen, so it remembers what happened where. Pause or delete it any time.",
+          "locationAlwaysAndWhenInUsePermission": "Jesse keeps noting places while it's closed, so it knows where you spend your time. Pause or delete it any time.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

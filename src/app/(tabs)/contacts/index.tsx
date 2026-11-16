@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
 import { ContactRow, ROW_HEIGHT, RowDivider } from '@/components/contacts/list/contact-row';
-import { CONTACTS_FIXTURE, fixtureList, fixtureOverview } from '@/components/contacts/list/fixture';
 import { FocusRow } from '@/components/contacts/list/focus-row';
 import { metricFor, syncedLabel, type ContactRowData, type ContactSort } from '@/components/contacts/list/sort';
 import { SortPill, SortSheet } from '@/components/contacts/list/sort-sheet';
@@ -24,11 +23,9 @@ export default function ContactsScreen() {
   const [search, setSearch] = useState('');
   const [connecting, setConnecting] = useState(false);
 
-  const liveRows = useQuery(api.contacts.list, CONTACTS_FIXTURE ? 'skip' : { sort });
-  const liveOverview = useQuery(api.contacts.overview, CONTACTS_FIXTURE ? 'skip' : {});
+  const rows = useQuery(api.contacts.list, { sort });
+  const overview = useQuery(api.contacts.overview, {});
   const seedDemo = useMutation(api.contactsSeed.demo);
-  const rows = CONTACTS_FIXTURE ? fixtureList(sort, now) : liveRows;
-  const overview = CONTACTS_FIXTURE ? fixtureOverview(now) : liveOverview;
 
   const query = search.trim().toLowerCase();
   const visible = useMemo(

@@ -23,6 +23,7 @@ import {
   type CheckInSettings,
 } from '@/lib/notifications';
 import { OrbArt } from '@/components/orb';
+import { PlaceInsights } from '@/components/place-insights';
 import { speak, stopSpeaking, useIsSpeaking, useVoiceInput } from '@/lib/voice';
 import { C, F } from '@/theme/tokens';
 
@@ -181,6 +182,8 @@ export default function ReflectScreen() {
             )}
             <Text style={styles.questionHint}>Take your time. Talk or type, whatever feels easier.</Text>
           </View>
+
+          <PlaceInsights />
 
           {turns.map((turn, index) => (
             <View

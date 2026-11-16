@@ -71,6 +71,14 @@ export const interactionKind = v.union(v.literal("in_person"), v.literal("call")
 
 export const mcpScope = v.union(v.literal("read:memory"), v.literal("write:notes"));
 
+export const geoPoint = v.object({
+  lat: v.number(),
+  lng: v.number(),
+  accuracy: v.optional(v.number()),
+});
+
+export const pingSource = v.union(v.literal("foreground"), v.literal("background"), v.literal("conversation"));
+
 export default defineSchema({
   users: defineTable({}),
 
@@ -142,9 +150,21 @@ export default defineSchema({
     leftOutCount: v.number(),
     pendingChunks: v.optional(v.number()),
     topicIds: v.optional(v.array(v.id("topics"))),
+    location: v.optional(geoPoint),
+    placeName: v.optional(v.string()),
   })
     .index("by_ownerId_and_startedAt", ["ownerId", "startedAt"])
     .index("by_ownerId_and_status", ["ownerId", "status"]),
+
+  locationPings: defineTable({
+    ownerId: v.id("users"),
+    lat: v.number(),
+    lng: v.number(),
+    accuracy: v.optional(v.number()),
+    ts: v.number(),
+    placeName: v.optional(v.string()),
+    source: pingSource,
+  }).index("by_ownerId_and_ts", ["ownerId", "ts"]),
 
   items: defineTable({
     ownerId: v.id("users"),

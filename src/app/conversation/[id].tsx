@@ -68,6 +68,16 @@ export default function ConversationScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+        {conversation.location ? (
+          <View
+            accessible
+            accessibilityLabel={`Happened at ${conversation.placeName ?? 'a pinned spot'}`}
+            style={styles.person}>
+            <Icon name="pin" size={20} color={C.accent} />
+            <Text style={styles.personName}>{conversation.placeName ?? 'A pinned spot'}</Text>
+          </View>
+        ) : null}
+
         {conversation.people.length ? (
           <>
             <SectionLabel>Who was there</SectionLabel>
