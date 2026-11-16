@@ -108,7 +108,7 @@ function WeekMap({ places }: { places: Place[] }) {
                   { left: p.left, top: p.top },
                   i === 0 && { backgroundColor: C.accent },
                 ]}>
-                <Text numberOfLines={1} style={[styles.pinText, i === 0 && { color: C.surface }]}>
+                <Text numberOfLines={1} style={[styles.pinText, i === 0 && { color: C.onAccent }]}>
                   {placeLabel(p.place)}
                 </Text>
               </View>
