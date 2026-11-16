@@ -421,3 +421,11 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - Tapping any fact, timeline row or trait opens a bottom sheet with the source conversations (labels only), "This is off", "Open contact", and Remove for traits (`insights.removeTrait`).
 - Built against the merged read API; a typed dev-only fixture (`EXPO_PUBLIC_INSIGHTS_FIXTURE=full|new`, ignored outside `__DEV__`) fills the full view until the compute and seed land.
 - Verified: tsc and expo lint are clean; every view rendered on Expo web against a local backend.
+
+## Motion and safe-area primitives (YCH-33)
+
+- `src/theme/motion.ts` is the one motion system: named springs (press, snappy, gentle, bouncy), a staggered spring `enter(index)` for lists and cards, `fadeIn`/`fadeOut`, a spring `layout` transition for things that appear or resize, and `haptic()` (expo-haptics; no-op on web). Every builder uses `ReduceMotion.System`, so Reduce Motion turns them off.
+- `PressableScale` (spring press-in on the UI thread, opacity instead of scale under Reduce Motion, optional haptic) and `IconButton` (44 pt target, `slopFor()` pads small visuals up to 44 pt) in `src/components/pressable-scale.tsx`. `Enter`, `Skeleton` and `SkeletonCard` in `src/components/motion.tsx`.
+- `Screen` takes `edges` (top by default; modals pass `['top', 'bottom']` to clear the home indicator), `keyboard` (KeyboardAvoidingView) and `contentStyle`. `Button` springs on press, has `disabled` and gives a light haptic on primary and dark buttons.
+- Picked Reanimated's built-in layout animations and springs instead of Moti or a keyboard library: both are already installed, run on the UI thread, and are in Expo Go. Added expo-haptics with `npx expo install` (in Expo Go). tsc and expo lint are clean.
+
