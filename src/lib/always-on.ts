@@ -60,6 +60,7 @@ export function useAlwaysOnJesse(onAddressed: (question: string) => void) {
   const queue = useRef<Promise<void>>(Promise.resolve());
   const conversation = useRef<Id<'conversations'> | null>(null);
   const quiet = useRef(0);
+  const extracting = useRef(new Set<Promise<unknown>>());
   const carry = useRef('');
   const onAddressedRef = useRef(onAddressed);
   const rollRef = useRef<() => Promise<void>>(async () => {});
@@ -76,6 +77,7 @@ export function useAlwaysOnJesse(onAddressed: (question: string) => void) {
     conversation.current = null;
     carry.current = '';
     if (running.current) setMode('waiting');
+    await Promise.all(extracting.current);
     if (id) await stopConversation({ conversationId: id }).catch(() => {});
   }, [stopConversation]);
 
@@ -85,6 +87,7 @@ export function useAlwaysOnJesse(onAddressed: (question: string) => void) {
         const audio = await read(uri);
         if (audio.byteLength < 2000) return;
         const { text } = await transcribe({ audio, mimeType: MIME });
+        if (!running.current) return;
         const heard = text.trim();
         if (!heard) {
           if (conversation.current && ++quiet.current >= QUIET_CHUNKS_TO_END) await endCapture();
@@ -94,10 +97,19 @@ export function useAlwaysOnJesse(onAddressed: (question: string) => void) {
         const joined = `${carry.current} ${heard}`.trim();
         const question = addressedTo(joined);
         if (!conversation.current && (question || heardWake(joined))) {
-          conversation.current = await startConversation({});
+          const id = await startConversation({});
+          if (!running.current) {
+            await stopConversation({ conversationId: id }).catch(() => {});
+            return;
+          }
+          conversation.current = id;
           setMode('capturing');
         }
-        if (conversation.current) void processChunk({ conversationId: conversation.current, audio }).catch(() => {});
+        if (conversation.current) {
+          const sent = processChunk({ conversationId: conversation.current, audio }).catch(() => {});
+          extracting.current.add(sent);
+          void sent.finally(() => extracting.current.delete(sent));
+        }
         carry.current = question ? '' : endsWithName(heard) ? heard : '';
         if (question) onAddressedRef.current(question);
       } catch (e) {
@@ -106,7 +118,7 @@ export function useAlwaysOnJesse(onAddressed: (question: string) => void) {
         discard(uri);
       }
     },
-    [endCapture, processChunk, startConversation, transcribe],
+    [endCapture, processChunk, startConversation, stopConversation, transcribe],
   );
 
   const record = useCallback(async () => {

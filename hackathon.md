@@ -364,3 +364,9 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - `src/lib/wake.ts` holds the wake and address rules: it fuzzy-matches the name (Jessie, Jessy, Jess and similar) and only treats an utterance as addressed when it starts with the name, or has "Jesse," followed by a question or request. Only then does Jesse answer through `jesse.ask` and TTS. Recording pauses while Jesse speaks so it never hears itself.
 - New capybara art: a rounder, simpler soft clay figure with dot eyes and tiny ears. Idle, blink, talk and happy come from one base image, with only the face blended onto idle, plus the 96px tab icon.
 - Verified on Expo web with a fake microphone playing "Hey Jesse, what's on my plate tomorrow?": wake, Listening, the spoken answer and the status pill all worked end to end. tsc and expo lint are clean.
+
+## Always-on review fixes (YCAP-9)
+
+- Pausing Jesse while a chunk is still being transcribed no longer flips it back to Listening or answers while paused: transcriptions that finish after a stop are dropped.
+- Ending a capture now waits for in-flight extraction requests before closing the conversation, so the last chunk's notes are not rejected.
+- Verified: tsc and expo lint clean.
