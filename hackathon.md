@@ -404,3 +404,20 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - `jesse.ask` loads TODAY's context in the user's time zone (conversations with place, people and gist; today's items; the people involved), reads the user's mood and answers as a warm, informal friend who matches it. It returns `{answer, mood}` and takes earlier turns as `history`.
 - The wake word and the 6-second transcription are gone. Passive capture records 10-minute mono 16 kHz 32 kbps segments and drops silent ones on the device using expo-audio metering. Voiced segments upload in the background with retry. `capture.ingestSegment` transcribes each one with diarization, attaches it to a conversation (a new one after 15 minutes without speech), runs extraction, and closes idle conversations through the scheduler.
 - Verified: tsc, expo lint and 15 convex-test tests are clean, and the screens render on Expo web.
+
+## Contacts tab (YCAP-21)
+
+- The Contacts tab replaces the stub: a list that reads like Apple Contacts ("Synced with Contacts · N contacts", search, bundled painted portraits instead of initials), a "Right now" row of who matters this week, and a sort sheet with Recent, Most time together, Deepest (most distinct topics), Encounters, plus the vibe sorts Most fun, Most compatible and Great for deep talk.
+- The contact page has a profile card (photo, role, known since, last seen, time together, encounters, topics) and then every fact Jesse keeps: from, birthday, relationship, how you met, working on, what matters, interests, family, life events, open promises both ways, favourite places together, gift ideas, phone and email. Each fact shows the conversation it was learned in. Below it, every conversation with them by month: date and time, place, length, mood dot, topic chips and the main points. No transcripts.
+- Data comes from `contacts.list` and `contacts.get` (#48) through one client data layer (`src/components/contacts/data`). A 36-person demo fixture with full histories renders behind `EXPO_PUBLIC_CONTACTS_FIXTURE=1` in development only.
+- `src/lib/contacts-source`: a `ContactsSource` interface with an Apple implementation over expo-contacts (names, phones, emails, birthdays, thumbnails uploaded to storage, batched sync) and the demo implementation used now, which loads the demo memories. Apple sync isn't connected yet; it needs a `contacts.sync` mutation.
+- 36 portraits in `assets/contacts/` (256 px JPEG, about 300 KB in total), matched to contacts by name.
+- Verified: tsc and expo lint are clean; rendered on Expo web at 390×844 against a local Convex backend with the demo seed, and with the fixture.
+
+## Insights tab (YCAP-27)
+
+- Insights replaces the placeholder with layout A: a "How was your day?" / "Who are you?" toggle. The day view has the week strip of day scores, the summary card (score ring, usual, headline, Jesse's take, thumbs up or down with better/worse saved through `insights.rateDay`), Mood (curve plus high, low and steady facts), People (split by relationship, a row per person, the reach-out nudge), Activity (where your time went, what you talked about, a row per place, plus the place insights from #46) and the collapsed hour-by-hour timeline.
+- "Who are you?" shows the identity sentence, What lifts you, Interests, Goals and Personality with their source labels, and Your orbit. Under 5 days it swaps in a "N of 5 days" card with "Tell Jesse about yourself"; under 7 days sections say "no baseline yet".
+- Tapping any fact, timeline row or trait opens a bottom sheet with the source conversations (labels only), "This is off", "Open contact", and Remove for traits (`insights.removeTrait`).
+- Built against the merged read API; a typed dev-only fixture (`EXPO_PUBLIC_INSIGHTS_FIXTURE=full|new`, ignored outside `__DEV__`) fills the full view until the compute and seed land.
+- Verified: tsc and expo lint are clean; every view rendered on Expo web against a local backend.
