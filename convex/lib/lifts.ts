@@ -24,6 +24,18 @@ export type Lift = {
 
 const MIN_DAYS = 5;
 const MIN_WITH = 3;
+const MIN_WITHOUT = 3;
+const ACTIVITY: Record<string, { label: string; phrase: string }> = {
+  building: { label: "Building", phrase: "on building days" },
+  meeting: { label: "Lots of meetings", phrase: "on days with meetings" },
+  meal: { label: "Meals out", phrase: "on days you eat out with someone" },
+  social: { label: "Social time", phrase: "on social days" },
+  exercise: { label: "Exercise", phrase: "on days you exercise" },
+  outdoors: { label: "Getting outside", phrase: "on days you get outside" },
+  commute: { label: "Commuting", phrase: "on days you commute" },
+  errand: { label: "Errands", phrase: "on errand days" },
+  other: { label: "Other", phrase: "on other days" },
+};
 const MIN_DELTA = 8;
 
 function mean(values: number[]) {
@@ -34,7 +46,7 @@ function note(kind: Kind, label: string, withAvg: number, withoutAvg: number) {
   const prefix = `Your average day score is ${withAvg}`;
   if (kind === "person") return `${prefix} with ${label} and ${withoutAvg} without`;
   if (kind === "place") return `${prefix} on days at ${label} and ${withoutAvg} on other days`;
-  return `${prefix} on days with ${label} and ${withoutAvg} without`;
+  return `${prefix} ${ACTIVITY[label]?.phrase ?? `on days with ${label}`} and ${withoutAvg} without`;
 }
 
 export function computeLifts(days: LiftDay[]): Lift[] {
@@ -55,7 +67,7 @@ export function computeLifts(days: LiftDay[]): Lift[] {
   for (const c of candidates.values()) {
     const withScores = days.filter((d) => c.dates.has(d.date)).map((d) => d.score);
     const withoutScores = days.filter((d) => !c.dates.has(d.date)).map((d) => d.score);
-    if (withScores.length < MIN_WITH || withoutScores.length === 0) continue;
+    if (withScores.length < MIN_WITH || withoutScores.length < MIN_WITHOUT) continue;
     const delta = Math.round(mean(withScores) - mean(withoutScores));
     if (Math.abs(delta) < MIN_DELTA) continue;
     const withAvg = Math.round(mean(withScores));
@@ -63,7 +75,7 @@ export function computeLifts(days: LiftDay[]): Lift[] {
     lifts.push({
       kind: c.kind,
       key: c.key,
-      label: c.label,
+      label: c.kind === "activityType" ? (ACTIVITY[c.label]?.label ?? c.label) : c.kind === "person" ? `Days with ${c.label}` : `Days at ${c.label}`,
       ...(c.personId ? { personId: c.personId } : {}),
       delta,
       withAvg,

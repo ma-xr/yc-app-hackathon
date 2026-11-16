@@ -33,22 +33,19 @@ describe("computeLifts", () => {
   test("keeps the top two positive and the top negative with exact numbers", () => {
     expect(computeLifts(week)).toEqual([
       {
-        kind: "person", key: priya, label: "Priya", personId: priya, delta: 20, withAvg: 82, withoutAvg: 62,
+        kind: "person", key: priya, label: "Days with Priya", personId: priya, delta: 20, withAvg: 82, withoutAvg: 62,
         withDays: ["2026-11-01", "2026-11-02", "2026-11-03"], note: "Your average day score is 82 with Priya and 62 without",
       },
       {
-        kind: "activityType", key: "exercise", label: "exercise", delta: 14, withAvg: 77, withoutAvg: 63,
-        withDays: ["2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04"], note: "Your average day score is 77 on days with exercise and 63 without",
-      },
-      {
-        kind: "person", key: max, label: "Max", personId: max, delta: -20, withAvg: 62, withoutAvg: 82,
+        kind: "person", key: max, label: "Days with Max", personId: max, delta: -20, withAvg: 62, withoutAvg: 82,
         withDays: ["2026-11-04", "2026-11-05", "2026-11-06"], note: "Your average day score is 62 with Max and 82 without",
       },
     ]);
   });
 
-  test("drops small deltas, things present every day, and thin data", () => {
+  test("drops small deltas, things missing on fewer than 3 days, and thin data", () => {
     const keys = computeLifts(week).map((l) => l.key);
+    expect(keys).not.toContain("exercise");
     expect(keys).not.toContain("Tartine");
     expect(keys).not.toContain("meal");
     expect(computeLifts(week.slice(0, 4))).toEqual([]);
@@ -81,6 +78,6 @@ describe("computeProfile", () => {
     await t.mutation(internal.profiles.computeProfile, { ownerId });
     const profile = await t.run(async (ctx) => await ctx.db.query("profiles").withIndex("by_ownerId", (q) => q.eq("ownerId", ownerId)).unique());
     expect(profile?.dataDays).toBe(6);
-    expect(profile?.lifts.map((l) => [l.label, l.delta])).toEqual([["Priya", 20]]);
+    expect(profile?.lifts.map((l) => [l.label, l.delta])).toEqual([["Days with Priya", 20]]);
   });
 });
