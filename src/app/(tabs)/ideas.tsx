@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   branchRow: { flexDirection: 'row', alignItems: 'center' },
   branch: { width: 14, height: 2, backgroundColor: C.chipBorder },
   pill: { backgroundColor: C.accentWash, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, flexShrink: 1 },
-  pillText: { fontFamily: F.medium, fontSize: 14, lineHeight: 19, color: C.orbDeep },
+  pillText: { fontFamily: F.medium, fontSize: 14, lineHeight: 19, color: C.accentDeep },
   entry: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   entryTap: { marginHorizontal: -8, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 12, minHeight: S.touch },
   entryPressed: { backgroundColor: C.accentWash },

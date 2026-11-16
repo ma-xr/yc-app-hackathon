@@ -1,14 +1,17 @@
 import { useMutation, useQuery } from 'convex/react';
-import { useRouter } from 'expo-router';
+import { useAuthActions } from '@convex-dev/auth/react';
+import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { api } from '../../convex/_generated/api';
 import { Icon } from '@/components/icon';
+import { OrbArt } from '@/components/orb';
 import { Button, Card, Chip, Divider, EmptyCard, SectionLabel, type Tone } from '@/components/ui';
 import { openComposer } from '@/lib/actions';
 import { importDeviceContacts } from '@/lib/contacts';
+import { useCheckInNow } from '@/lib/notifications';
 import { C, F, S, T } from '@/theme/tokens';
 
 const MODE: Record<'live' | 'sample' | 'off', { label: string; tone: Tone }> = {
@@ -34,6 +37,8 @@ function queuedMessage(res: { queued: number; skipped: number }, skippedText: st
 }
 
 export default function ConnectionsScreen() {
+  const { signOut } = useAuthActions();
+  const checkInNow = useCheckInNow();
   const router = useRouter();
   const connections = useQuery(api.connections.list);
   const scenarios = useQuery(api.scenarios.list);
@@ -103,7 +108,21 @@ export default function ConnectionsScreen() {
         </Text>
       </View>
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        <SectionLabel>Sources</SectionLabel>
+        <SectionLabel>You</SectionLabel>
+        <Card style={styles.you}>
+          <OrbArt size={64} />
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={T.cardTitle}>Your Jesse</Text>
+            <Text style={T.bodySmall}>Fur, something to wear, mood and glow.</Text>
+          </View>
+          <Button compact label="Customize" onPress={() => router.push('/your-jesse' as Href)} />
+        </Card>
+        <View style={styles.actions}>
+          <Button compact variant="outline" label="Check in now" onPress={() => void checkInNow()} />
+          <Button compact variant="outline" label="Sign out" onPress={() => void signOut()} />
+        </View>
+
+        <SectionLabel style={{ marginTop: 8 }}>Sources</SectionLabel>
         {connections === undefined ? (
           <ActivityIndicator color={C.accent} />
         ) : (
@@ -252,10 +271,11 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: C.surface,
+    backgroundColor: C.bg,
   },
   iconButton: { width: S.touch, height: S.touch, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: F.bold, fontSize: 17, color: C.ink },
+  title: { fontFamily: F.display, fontSize: 22, color: C.ink },
+  you: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   body: { paddingHorizontal: S.screenX, paddingTop: S.screenTop, paddingBottom: 32, gap: S.gap },
   row: { paddingVertical: 14, gap: 6 },
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },

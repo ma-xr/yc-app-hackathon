@@ -1,9 +1,9 @@
-import { router } from "expo-router";
-import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { router } from 'expo-router';
+import { useState, type ReactNode } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Orb, OrbArt } from "@/components/orb";
-import { Button, Screen } from "@/components/ui";
+import { Orb, OrbArt } from '@/components/orb';
+import { Button, Screen } from '@/components/ui';
 import {
   ACCENTS,
   ACCESSORIES,
@@ -17,12 +17,11 @@ import {
   type Fur,
   type Glow,
   type Look,
-} from "@/lib/jesse-look";
-import { C, F, S, T } from "@/theme/tokens";
+} from '@/lib/jesse-look';
+import { C, F, S, T } from '@/theme/tokens';
 
 const keys = <O extends object>(o: O) => Object.keys(o) as (keyof O)[];
-const pick = <V,>(list: readonly V[]) =>
-  list[Math.floor(Math.random() * list.length)];
+const pick = <V,>(list: readonly V[]) => list[Math.floor(Math.random() * list.length)];
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -50,31 +49,23 @@ function Swatch({
       accessibilityRole="radio"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
-      style={styles.swatchWrap}
-    >
+      style={styles.swatchWrap}>
       <View style={[styles.swatchRing, selected && { borderColor: C.ink }]}>
         <View
           style={[
             styles.swatch,
-            color === "transparent"
+            color === 'transparent'
               ? {
                   backgroundColor: C.surface,
                   borderWidth: 1,
                   borderColor: C.chipBorder,
-                  borderStyle: "dashed",
+                  borderStyle: 'dashed',
                 }
               : { backgroundColor: color },
           ]}
         />
       </View>
-      <Text
-        style={[
-          styles.swatchLabel,
-          selected && { color: C.ink, fontFamily: F.semibold },
-        ]}
-      >
-        {label}
-      </Text>
+      <Text style={[styles.swatchLabel, selected && { color: C.ink, fontFamily: F.semibold }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -96,12 +87,9 @@ function Tile({
       accessibilityRole="radio"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
-      style={[styles.tile, selected && styles.tileOn]}
-    >
+      style={[styles.tile, selected && styles.tileOn]}>
       <OrbArt size={52} look={look} />
-      <Text style={[styles.tileLabel, selected && { color: C.ink }]}>
-        {label}
-      </Text>
+      <Text style={[styles.tileLabel, selected && { color: C.ink }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -120,11 +108,7 @@ export default function YourJesse() {
         <Text style={T.h1} accessibilityRole="header">
           Your Jesse
         </Text>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={10}
-          accessibilityRole="button"
-        >
+        <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button">
           <Text style={styles.done}>Done</Text>
         </Pressable>
       </View>
@@ -133,18 +117,9 @@ export default function YourJesse() {
       </Text>
 
       <View style={styles.preview}>
-        <Orb
-          listening={false}
-          onPress={() => setHop((n) => n + 1)}
-          cheer={hop}
-          size={170}
-          look={look}
-        />
+        <Orb listening={false} onPress={() => setHop((n) => n + 1)} cheer={hop} size={170} look={look} />
       </View>
-      <ScrollView
-        contentContainerStyle={styles.options}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.options} showsVerticalScrollIndicator={false}>
         <Section title="Fur">
           {keys(FURS).map((fur: Fur) => (
             <Swatch
@@ -161,7 +136,7 @@ export default function YourJesse() {
           {keys(ACCESSORIES).map((accessory: Accessory) => (
             <Tile
               key={accessory}
-              look={{ ...look, accessory, expression: "calm" }}
+              look={{ ...look, accessory, expression: 'calm' }}
               label={ACCESSORIES[accessory]}
               selected={look.accessory === accessory}
               onPress={() => set({ accessory })}
@@ -169,13 +144,13 @@ export default function YourJesse() {
           ))}
         </Section>
 
-        {look.accessory !== "none" ? (
+        {look.accessory !== 'none' ? (
           <Section title={`${ACCESSORIES[look.accessory]} colour`}>
             {ACCENTS.map((accent, i) => (
               <Swatch
                 key={accent}
                 color={accent}
-                label={["Berry", "Denim", "Mustard", "Moss", "Cream"][i]}
+                label={['Berry', 'Denim', 'Mustard', 'Moss', 'Cream'][i]}
                 selected={look.accent === accent}
                 onPress={() => set({ accent })}
               />
@@ -228,33 +203,33 @@ export default function YourJesse() {
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   done: { fontFamily: F.bold, fontSize: 16, color: C.accent },
-  preview: { alignItems: "center", marginVertical: -26 },
+  preview: { alignItems: 'center', marginVertical: -26 },
   options: { gap: S.gap, paddingBottom: 40 },
   section: { gap: 10 },
-  row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  swatchWrap: { alignItems: "center", gap: 4, width: 50 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  swatchWrap: { alignItems: 'center', gap: 4, width: 50 },
   swatchRing: {
     padding: 3,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: "transparent",
+    borderColor: 'transparent',
   },
   swatch: { width: 36, height: 36, borderRadius: 18 },
   swatchLabel: { fontFamily: F.medium, fontSize: 11, color: C.muted },
   tile: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: 2,
     width: 63,
     paddingVertical: 8,
     borderRadius: S.cardRadius - 8,
     backgroundColor: C.surface,
     borderWidth: 2,
-    borderColor: "transparent",
+    borderColor: 'transparent',
   },
   tileOn: { borderColor: C.accent },
   tileLabel: { fontFamily: F.semibold, fontSize: 11, color: C.muted },
