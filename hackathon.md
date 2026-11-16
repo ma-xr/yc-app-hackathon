@@ -429,3 +429,10 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - `Screen` takes `edges` (top by default; modals pass `['top', 'bottom']` to clear the home indicator), `keyboard` (KeyboardAvoidingView) and `contentStyle`. `Button` springs on press, has `disabled` and gives a light haptic on primary and dark buttons.
 - Picked Reanimated's built-in layout animations and springs instead of Moti or a keyboard library: both are already installed, run on the UI thread, and are in Expo Go. Added expo-haptics with `npx expo install` (in Expo Go). tsc and expo lint are clean.
 
+## Jesse talks like an excited friend (YCH-32)
+
+- Talk prompt rewritten: Jesse is openly glad you showed up, reacts to what you said before steering, asks at most one question, has its own take ("that thing with Sam about the Stripe interview stuck with me"), brings up one thing from the day at a time (the most emotionally live one), and never mentions clock times, counts, notes, data or recordings. Mood matching stays: gentler when low, playful when up.
+- The context Jesse sees has no clock times left: conversations and due items say "this morning", "around lunch", "yesterday", "on Thursday"; times inside gists, facts and items are softened the same way; counts are gone; today's conversations carry how they felt (from the conversation mood) so Jesse can pick what matters.
+- Talk replies use a strict JSON schema, which fixes the occasional empty reply ("Sorry, I lost that").
+- The opening line on Talk picks the most emotionally live conversation and is mood-aware ("Hey Ui! Okay, I need to hear about lunch with Sam. That seemed like a good one!"), and is now passed to Jesse as the first turn so a reply to it makes sense.
+- `scripts/jesse-eval.ts`: 12 scripted turns against the real prompt; fails on clock times, lists, meta talk, double questions, wrong mood, or an invented day. Passed 3 runs in a row with gpt-5-mini. tsc and 31 convex-tests pass.
