@@ -1,14 +1,16 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
-import { findOrCreatePerson } from "../conversations";
+import { internalAction, internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
+import { applyNotes, contextFor, extractionValidator, findOrCreatePerson } from "../conversations";
 import { extractNotes } from "../extract";
-import { eventSource } from "../schema";
+import { conversationChannel, eventSource } from "../schema";
 import { CONNECTIONS, placeFor } from "./catalog";
 
 const TIME_ZONE = "America/Los_Angeles";
 const DAY = 24 * 60 * 60 * 1000;
+const MIN_THREAD_MESSAGES = 3;
+const MIN_THREAD_CHARS = 200;
 
 export const eventValidator = v.object({
   source: eventSource,
@@ -57,6 +59,13 @@ export async function queueEvents(ctx: MutationCtx, ownerId: Id<"users">, connec
   return { queued, skipped };
 }
 
+export function channelFor(event: Pick<IngestEvent, "source" | "kind" | "text">) {
+  if (event.source === "conversation") return "voice" as const;
+  if ((event.source !== "imessage" && event.source !== "email") || event.kind === "text_to_jesse") return null;
+  const messages = event.text.split("\n").filter((l) => l.trim().length > 0).length;
+  return messages >= MIN_THREAD_MESSAGES && event.text.trim().length >= MIN_THREAD_CHARS ? event.source : null;
+}
+
 function sourceNote(event: IngestEvent, now: number) {
   const from = event.people.map((p) => p.name).join(", ") || "someone";
   const daysAgo = Math.floor((now - event.occurredAt) / DAY);
@@ -91,19 +100,25 @@ export const ingest = internalAction({
       occurredAt: event.occurredAt,
       hash,
       people: event.people,
+      channel: channelFor(event),
     });
     if (begun === null) return { status: "duplicate" as const, items: 0 };
     try {
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) throw new Error("OPENAI_API_KEY is not set on this deployment");
-      const context = await ctx.runQuery(internal.conversations.extractionContext, { conversationId: begun.conversationId });
+      const context: unknown = await ctx.runQuery(internal.integrations.ingest.context, {
+        ownerId,
+        conversationId: begun.conversationId ?? undefined,
+      });
       const extraction = await extractNotes(event.text, context, apiKey, sourceNote(event, Date.now()));
-      const planIds = await ctx.runMutation(internal.conversations.applyExtraction, { conversationId: begun.conversationId, extraction });
-      for (const itemId of planIds) {
+      const applied: { planIds: Id<"items">[]; items: number } = await ctx.runMutation(internal.integrations.ingest.apply, {
+        eventId: begun.eventId,
+        extraction,
+      });
+      for (const itemId of applied.planIds) {
         await ctx.scheduler.runAfter(0, internal.followups.planForItem, { itemId });
       }
-      const items: number = await ctx.runMutation(internal.integrations.ingest.finish, { eventId: begun.eventId });
-      return { status: "ingested" as const, items };
+      return { status: "ingested" as const, items: applied.items };
     } catch (error) {
       console.error(`ingest failed for ${event.source}/${event.kind}: ${error instanceof Error ? error.message : "unknown error"}`);
       await ctx.runMutation(internal.integrations.ingest.fail, { eventId: begun.eventId });
@@ -121,8 +136,9 @@ export const begin = internalMutation({
     occurredAt: v.number(),
     hash: v.string(),
     people: v.array(v.object({ name: v.string(), handle: v.optional(v.string()) })),
+    channel: v.union(conversationChannel, v.null()),
   },
-  handler: async (ctx, { ownerId, connectionKey, source, kind, occurredAt, hash, people }) => {
+  handler: async (ctx, { ownerId, connectionKey, source, kind, occurredAt, hash, people, channel }) => {
     const seen = await ctx.db
       .query("sourceEvents")
       .withIndex("by_ownerId_and_hash", (q) => q.eq("ownerId", ownerId).eq("hash", hash))
@@ -139,22 +155,26 @@ export const begin = internalMutation({
       const phone = named.handle?.startsWith("+") ? named.handle : undefined;
       await ctx.db.patch("people", person._id, {
         lastSeenAt: Math.max(person.lastSeenAt, occurredAt),
-        conversationCount: person.conversationCount + 1,
+        conversationCount: person.conversationCount + (channel === null ? 0 : 1),
         ...(phone && !person.phone ? { phone } : {}),
       });
       participantIds.push(person._id);
     }
-    const conversationId = await ctx.db.insert("conversations", {
-      ownerId,
-      startedAt: occurredAt,
-      endedAt: occurredAt,
-      status: "processing",
-      participantIds,
-      place: placeFor(connectionKey, source),
-      gist: [],
-      leftOutCount: 0,
-      pendingChunks: 1,
-    });
+    const conversationId =
+      channel === null
+        ? undefined
+        : await ctx.db.insert("conversations", {
+            ownerId,
+            startedAt: occurredAt,
+            endedAt: occurredAt,
+            status: "processing",
+            participantIds,
+            place: placeFor(connectionKey, source),
+            gist: [],
+            leftOutCount: 0,
+            pendingChunks: 1,
+            ...(channel === "voice" ? {} : { channel }),
+          });
     const eventId = await ctx.db.insert("sourceEvents", {
       ownerId,
       connectionKey,
@@ -165,7 +185,7 @@ export const begin = internalMutation({
       conversationId,
       itemCount: 0,
     });
-    return { conversationId, eventId };
+    return { conversationId: conversationId ?? null, eventId };
   },
 });
 
@@ -183,20 +203,25 @@ export async function touchConnection(ctx: MutationCtx, ownerId: Id<"users">, ke
   await ctx.db.patch("connections", row._id, { lastSyncAt: Date.now(), itemCount: row.itemCount + added });
 }
 
-export const finish = internalMutation({
-  args: { eventId: v.id("sourceEvents") },
-  returns: v.number(),
-  handler: async (ctx, { eventId }) => {
+export const context = internalQuery({
+  args: { ownerId: v.id("users"), conversationId: v.optional(v.id("conversations")) },
+  handler: async (ctx, { ownerId, conversationId }) => {
+    const conversation = conversationId === undefined ? null : await ctx.db.get("conversations", conversationId);
+    return await contextFor(ctx, ownerId, conversation);
+  },
+});
+
+export const apply = internalMutation({
+  args: { eventId: v.id("sourceEvents"), extraction: extractionValidator },
+  returns: v.object({ planIds: v.array(v.id("items")), items: v.number() }),
+  handler: async (ctx, { eventId, extraction }) => {
     const event = await ctx.db.get("sourceEvents", eventId);
-    if (event === null || event.conversationId === undefined) return 0;
-    const conversationId = event.conversationId;
-    const items = await ctx.db
-      .query("items")
-      .withIndex("by_conversationId", (q) => q.eq("conversationId", conversationId))
-      .take(20);
-    await ctx.db.patch("sourceEvents", eventId, { itemCount: items.length });
-    await touchConnection(ctx, event.ownerId, event.connectionKey, items.length);
-    return items.length;
+    if (event === null) return { planIds: [], items: 0 };
+    const conversation = event.conversationId === undefined ? null : await ctx.db.get("conversations", event.conversationId);
+    const { planIds, inserted } = await applyNotes(ctx, event.ownerId, conversation, extraction);
+    await ctx.db.patch("sourceEvents", eventId, { itemCount: inserted });
+    await touchConnection(ctx, event.ownerId, event.connectionKey, inserted);
+    return { planIds, items: inserted };
   },
 });
 
