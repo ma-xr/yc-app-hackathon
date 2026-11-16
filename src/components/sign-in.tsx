@@ -22,6 +22,10 @@ type AuthError = Extract<
   { status: 'error' }
 >['userError'];
 
+function chars(n: number) {
+  return n === 1 ? '1 character' : `${n} characters`;
+}
+
 function errorMessage(userError: AuthError) {
   switch (userError.error) {
     case 'USER_NOT_FOUND':
@@ -31,17 +35,17 @@ function errorMessage(userError: AuthError) {
     case 'USERNAME_TAKEN':
       return 'That username is already taken.';
     case 'USERNAME_TOO_SHORT':
-      return `Username must be at least ${userError.minimumLength} characters.`;
+      return `Username must be at least ${chars(userError.minimumLength)}.`;
     case 'USERNAME_TOO_LONG':
-      return `Username must be at most ${userError.maximumLength} characters.`;
+      return `Username must be at most ${chars(userError.maximumLength)}.`;
     case 'USERNAME_HAS_SURROUNDING_WHITESPACE':
       return "Username can't start or end with whitespace.";
     case 'USERNAME_HAS_INVALID_CHARACTERS':
       return "Username contains characters that aren't allowed.";
     case 'PASSWORD_TOO_SHORT':
-      return `Password must be at least ${userError.minimumLength} characters.`;
+      return `Password must be at least ${chars(userError.minimumLength)}.`;
     case 'PASSWORD_TOO_LONG':
-      return `Password must be at most ${userError.maximumLength} characters.`;
+      return `Password must be at most ${chars(userError.maximumLength)}.`;
     case 'PASSWORD_HAS_SURROUNDING_WHITESPACE':
       return "Password can't start or end with whitespace.";
     case 'PASSWORD_TOO_COMMON':
