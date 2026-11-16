@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { MOCK_CONTACTS } from "../src/components/contacts/data/mock-data";
 import { api } from "./_generated/api";
 import schema from "./schema";
 
@@ -43,9 +44,9 @@ describe("seed.demo", () => {
     expect(day?.baselineReady).toBe(true);
     expect(day?.timeline).toHaveLength(5);
     expect(day?.people.split).toEqual({ work: 285, friend: 60, family: 25, other: 0 });
-    expect(day?.people.nudge?.name).toBe("Aoife");
-    expect(day?.people.nudgeReason).toBe("You haven't talked to Aoife in 12 days. You usually catch up weekly.");
-    expect(day?.mood.facts.map((f) => f.title)).toEqual(["High: lunch with Priya", "Low: building with Max", "Steady: meeting with Tomás"]);
+    expect(day?.people.nudge?.name).toBe("Lena Ortiz");
+    expect(day?.people.nudgeReason).toBe("You haven't talked to Lena Ortiz in 12 days. You usually catch up weekly.");
+    expect(day?.mood.facts.map((f) => f.title)).toEqual(["High: lunch with Sam", "Low: building with Maya", "Steady: meeting with David"]);
     expect(day?.activity.facts.map((f) => f.place)).toEqual(["YC hackathon", "Tartine", "Café Réveille", "Dolores Park"]);
 
     const week = await alice.query(api.insights.week, { endDate: TODAY });
@@ -55,19 +56,33 @@ describe("seed.demo", () => {
     expect(Math.min(...scores)).toBe(scores[3]);
     expect(Math.max(...scores)).toBe(scores[5]);
 
-    const { withPriya, without } = await t.run(async (ctx) => {
-      const rows = await ctx.db.query("days").withIndex("by_ownerId_and_date", (q) => q.eq("ownerId", aliceId)).take(100);
-      const priya = (await ctx.db.query("people").withIndex("by_ownerId", (q) => q.eq("ownerId", aliceId)).take(20)).find(
-        (p) => p.name === "Priya Raman",
-      )!;
-      const has = (r: (typeof rows)[number]) => r.people.facts.some((f) => f.personId === priya._id);
-      const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
-      return { withPriya: avg(rows.filter(has).map((r) => r.score)), without: avg(rows.filter((r) => !has(r)).map((r) => r.score)) };
-    });
-    expect(withPriya - without).toBeGreaterThanOrEqual(8);
+    const lifts = await t.run(async (ctx) =>
+      (await ctx.db.query("profiles").withIndex("by_ownerId", (q) => q.eq("ownerId", aliceId)).unique())!.lifts,
+    );
+    expect(lifts.map((l) => l.label)).toEqual(["Days with Sam Rivera", "Getting outside", "Lots of meetings"]);
+    expect(Math.abs(lifts[0].delta - 17)).toBeLessThanOrEqual(3);
+    expect(Math.abs(lifts[1].delta - 12)).toBeLessThanOrEqual(3);
+    expect(Math.abs(lifts[2].delta + 14)).toBeLessThanOrEqual(3);
+    expect(lifts.every((l) => Math.abs(l.delta) >= 8)).toBe(true);
 
-    const contacts = await alice.query(api.contacts.list, { sort: "time" });
-    expect(contacts[0].name).toBe("Max");
+    const contacts = await alice.query(api.contacts.list, {});
+    expect(contacts).toHaveLength(MOCK_CONTACTS.length);
+    expect(new Set(contacts.map((c) => c.name))).toEqual(new Set(MOCK_CONTACTS.map((m) => m.name)));
+    const cast = ["Maya Chen", "Sam Rivera", "David Okafor", "Ethan Nguyen", "Mom", "Lena Ortiz", "Dev Patel", "Priya Shah"];
+    const people = await t.run(async (ctx) => ctx.db.query("people").withIndex("by_ownerId", (q) => q.eq("ownerId", aliceId)).take(100));
+    for (const name of cast) {
+      const p = people.find((x) => x.name === name)!;
+      expect(p.lastInteractionAt).toBeDefined();
+      expect(p.encounterCount).toBeGreaterThan(0);
+      expect([p.from, p.workingOn, p.howWeMet, p.birthday, p.phone, p.relationshipSummary, p.roleLabel, p.relationship].every((f) => f !== undefined)).toBe(true);
+      const lists = [p.interests, p.whatMatters, p.family, p.lifeEvents, p.giftIdeas];
+      expect(lists.every((l) => (l?.length ?? 0) > 0)).toBe(true);
+      const sourced = [p.from, p.workingOn, p.howWeMet, ...(p.interests ?? []), ...(p.whatMatters ?? []), ...(p.lifeEvents ?? []), ...(p.family ?? [])];
+      expect(sourced.some((f) => (f?.conversationIds.length ?? 0) > 0)).toBe(true);
+    }
+    expect(people.find((p) => p.name === "Sam Rivera")?.roleLabel).toBe("Climbing friend");
+    expect(people.filter((p) => !cast.includes(p.name)).every((p) => p.encounterCount === p.conversationCount)).toBe(true);
+
     const profile = await alice.query(api.insights.profile, { today: TODAY });
     expect(profile.interests.map((i) => i.label)).toEqual(expect.arrayContaining(["AI agents", "Startups", "Climbing", "Film photography"]));
     expect(profile.goals.map((g) => g.label)).toEqual(expect.arrayContaining(["Ship Jesse at the hackathon", "Raise a pre-seed round", "Climb V5 by spring"]));

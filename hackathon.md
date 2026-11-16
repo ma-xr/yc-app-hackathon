@@ -421,3 +421,13 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - Tapping any fact, timeline row or trait opens a bottom sheet with the source conversations (labels only), "This is off", "Open contact", and Remove for traits (`insights.removeTrait`).
 - Built against the merged read API; a typed dev-only fixture (`EXPO_PUBLIC_INSIGHTS_FIXTURE=full|new`, ignored outside `__DEV__`) fills the full view until the compute and seed land.
 - Verified: tsc and expo lint are clean; every view rendered on Expo web against a local backend.
+
+## Pivot compute: extraction labels, days, traits, lifts and the demo seed (YCH-28)
+
+- Extraction now keeps per-conversation mood, mood reason, energy, activity type, topic mix, a summary line and per-person fun / overlap / depth signals, and fills each person's Contacts profile (relationship, role, from, working on, interests, what matters, family, life events, gift ideas, birthday, how you met, open promises). Every learned fact keeps its source conversation ids. Minutes, encounters, distinct topics and the fun, compatibility and deep-talk scores are recomputed by code (`convex/lib/personScores.ts`).
+- iMessage and email threads from ingest become conversations with a `channel`; short exchanges only feed items.
+- `days`: code computes every number (`convex/lib/dayScores.ts`), then one LLM call writes the headline, take, descriptions and reasons from those numbers (`convex/writer.ts`), with code-written fallbacks. `insights.refresh` recomputes today, throttled.
+- Traits learned nightly from topics, goals and code-computed personality stats; "told" traits come from what you say in Talk. Lifts compare day scores with and without each person, place or activity, and an identity sentence is written from the traits. A nightly cron runs it all.
+- `contacts.sync` upserts expo-contacts by contact id, phone, email, then name.
+- Demo seed: 21 days across the Contacts cast (Maya Chen, Sam Rivera, David Okafor, Ethan Nguyen, Mom, Lena Ortiz, Dev Patel, Priya Shah, plus the other 28 contacts). Today lands at 74 with mood 67, people 83 and activity 72.
+- Verified: 60 convex-test tests (authz, score formulas, lifts, seed numbers), tsc, expo lint, plus one live OpenAI run of extraction and the day writer in a local test. Nothing deployed.
