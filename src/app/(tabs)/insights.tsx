@@ -101,7 +101,7 @@ function YouTab({ today }: { today: string }) {
 
 const styles = StyleSheet.create({
   seg: { flexDirection: 'row', backgroundColor: C.surface, borderRadius: 999, padding: 4, gap: 4 },
-  segItem: { flex: 1, minHeight: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  segItem: { flex: 1, minHeight: 44, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: C.accent },
   segText: { fontFamily: F.semibold, fontSize: 14, color: C.muted },
 });
