@@ -389,3 +389,10 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - `src/lib/location.ts` (expo-location + expo-task-manager): samples every 5 minutes or 150 m of movement while Jesse is open, pins each new conversation where it starts, names spots with on-device reverse geocoding, and in a development build keeps noting places in the background. In Expo Go and on web it stays foreground-only.
 - UI is components only, for the Insights tab: `PlacesSection`, `PlaceInsights` (also shown on Reflect) and `LocationSettings` in Connections (pause, resume, delete history). The conversation page shows where it happened.
 - Verified: 6 convex-test authz tests, tsc, expo lint, and the UI on Expo web against a local Convex backend with seeded places, including delete history. Not verified on a phone.
+
+## Pivot data contract: schema and read API (YCH-28)
+
+- Schema for the Talk / Insights / Contacts pivot, every new field optional so existing rows stay valid. Conversations gain `mood` (-2..2), `moodReason`, `energy`, `activityType`, `topicMix`, `summaryLine`, `channel` and per-person `personSignals` (fun, overlap, depth 0-3). People gain the Contacts profile (relationship, roleLabel, from, workingOn, interests, whatMatters, family, lifeEvents, giftIdeas, birthday, howWeMet, openPromises, each learned fact with its source conversationIds), counters (totalMinutes, lastInteractionAt, encounterCount, distinctTopicCount) and fun / compatibility / deep-talk scores, with an index per Contacts sort.
+- New tables: `days` (one row per user per date with the day score, usual, headline, take, and the Mood, People and Activity sections), `traits` (interest, goal, personality; learned or told; evidence and removed) and `profiles` (identity sentence and lifts).
+- Read API for the UI threads: `insights.week`, `insights.day`, `insights.evidence`, `insights.profile`, `insights.rateDay`, `insights.removeTrait`, `insights.refresh` (no-op until the compute lands), `contacts.list`, `contacts.get`.
+- Verified: convex-test authz and shape tests, tsc, expo lint. The compute, extraction and seed follow in the next PR.

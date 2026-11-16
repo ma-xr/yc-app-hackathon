@@ -52,6 +52,125 @@ export const geoPoint = v.object({
 
 export const pingSource = v.union(v.literal("foreground"), v.literal("background"), v.literal("conversation"));
 
+export const relationship = v.union(v.literal("work"), v.literal("friend"), v.literal("family"), v.literal("other"));
+
+export const energy = v.union(v.literal("low"), v.literal("medium"), v.literal("high"));
+
+export const activityType = v.union(
+  v.literal("building"),
+  v.literal("meeting"),
+  v.literal("meal"),
+  v.literal("social"),
+  v.literal("exercise"),
+  v.literal("outdoors"),
+  v.literal("commute"),
+  v.literal("errand"),
+  v.literal("other"),
+);
+
+export const conversationChannel = v.union(v.literal("voice"), v.literal("imessage"), v.literal("email"), v.literal("call"));
+
+export const topicMix = v.object({ work: v.number(), personal: v.number(), logistics: v.number() });
+
+export const personSignal = v.object({
+  personId: v.id("people"),
+  fun: v.number(),
+  overlap: v.number(),
+  depth: v.number(),
+});
+
+export const sourced = v.object({
+  text: v.string(),
+  conversationIds: v.array(v.id("conversations")),
+});
+
+export const promise = v.object({
+  text: v.string(),
+  direction: v.union(v.literal("you_owe"), v.literal("they_owe")),
+  conversationIds: v.array(v.id("conversations")),
+  itemId: v.optional(v.id("items")),
+});
+
+export const traitKind = v.union(v.literal("interest"), v.literal("goal"), v.literal("personality"));
+
+export const traitSource = v.union(v.literal("learned"), v.literal("told"));
+
+export const moodFact = v.object({
+  kind: v.union(v.literal("high"), v.literal("low"), v.literal("steady")),
+  conversationId: v.id("conversations"),
+  at: v.number(),
+  mood: v.number(),
+  personIds: v.array(v.id("people")),
+  place: v.optional(v.string()),
+  title: v.string(),
+  reason: v.string(),
+});
+
+export const peopleFact = v.object({
+  personId: v.id("people"),
+  minutes: v.number(),
+  mood: v.number(),
+  conversationIds: v.array(v.id("conversations")),
+  reason: v.string(),
+});
+
+export const activityFact = v.object({
+  place: v.string(),
+  activityType,
+  minutes: v.number(),
+  conversationIds: v.array(v.id("conversations")),
+  reason: v.string(),
+});
+
+export const daySection = {
+  score: v.number(),
+  usual: v.optional(v.number()),
+  desc: v.string(),
+};
+
+export const dayMood = v.object({
+  ...daySection,
+  curve: v.array(v.object({ at: v.number(), value: v.number(), conversationId: v.id("conversations") })),
+  facts: v.array(moodFact),
+});
+
+export const dayPeople = v.object({
+  ...daySection,
+  totalMinutes: v.number(),
+  personCount: v.number(),
+  split: v.object({ work: v.number(), friend: v.number(), family: v.number(), other: v.number() }),
+  facts: v.array(peopleFact),
+  nudgePersonId: v.optional(v.id("people")),
+  nudgeReason: v.optional(v.string()),
+});
+
+export const dayActivity = v.object({
+  ...daySection,
+  timeSplit: v.array(v.object({ activityType, minutes: v.number() })),
+  talkSplit: topicMix,
+  facts: v.array(activityFact),
+});
+
+export const dayRating = v.object({
+  verdict: v.union(v.literal("up"), v.literal("down")),
+  direction: v.optional(v.union(v.literal("better"), v.literal("worse"))),
+  at: v.number(),
+});
+
+export const liftKind = v.union(v.literal("person"), v.literal("place"), v.literal("activityType"));
+
+export const lift = v.object({
+  kind: liftKind,
+  key: v.string(),
+  label: v.string(),
+  personId: v.optional(v.id("people")),
+  delta: v.number(),
+  withAvg: v.number(),
+  withoutAvg: v.number(),
+  withDays: v.array(v.string()),
+  note: v.string(),
+});
+
 export default defineSchema({
   users: defineTable({}),
 
@@ -65,10 +184,37 @@ export default defineSchema({
     lastSeenAt: v.number(),
     conversationCount: v.number(),
     cadenceDays: v.optional(v.number()),
+    relationship: v.optional(relationship),
+    roleLabel: v.optional(v.string()),
+    from: v.optional(sourced),
+    workingOn: v.optional(sourced),
+    interests: v.optional(v.array(sourced)),
+    whatMatters: v.optional(v.array(sourced)),
+    relationshipSummary: v.optional(v.string()),
+    totalMinutes: v.optional(v.number()),
+    lastInteractionAt: v.optional(v.number()),
+    encounterCount: v.optional(v.number()),
+    distinctTopicCount: v.optional(v.number()),
+    topicLabels: v.optional(v.array(v.string())),
+    birthday: v.optional(sourced),
+    howWeMet: v.optional(sourced),
+    family: v.optional(v.array(sourced)),
+    lifeEvents: v.optional(v.array(sourced)),
+    openPromises: v.optional(v.array(promise)),
+    giftIdeas: v.optional(v.array(sourced)),
+    funScore: v.optional(v.number()),
+    compatibilityScore: v.optional(v.number()),
+    deepTalkScore: v.optional(v.number()),
   })
     .index("by_ownerId", ["ownerId"])
     .index("by_ownerId_and_lastSeenAt", ["ownerId", "lastSeenAt"])
-    .index("by_ownerId_and_name", ["ownerId", "name"]),
+    .index("by_ownerId_and_name", ["ownerId", "name"])
+    .index("by_ownerId_and_lastInteractionAt", ["ownerId", "lastInteractionAt"])
+    .index("by_ownerId_and_totalMinutes", ["ownerId", "totalMinutes"])
+    .index("by_ownerId_and_distinctTopicCount", ["ownerId", "distinctTopicCount"])
+    .index("by_ownerId_and_funScore", ["ownerId", "funScore"])
+    .index("by_ownerId_and_compatibilityScore", ["ownerId", "compatibilityScore"])
+    .index("by_ownerId_and_deepTalkScore", ["ownerId", "deepTalkScore"]),
 
   conversations: defineTable({
     ownerId: v.id("users"),
@@ -83,6 +229,14 @@ export default defineSchema({
     topicIds: v.optional(v.array(v.id("topics"))),
     location: v.optional(geoPoint),
     placeName: v.optional(v.string()),
+    channel: v.optional(conversationChannel),
+    mood: v.optional(v.number()),
+    moodReason: v.optional(v.string()),
+    energy: v.optional(energy),
+    activityType: v.optional(activityType),
+    topicMix: v.optional(topicMix),
+    summaryLine: v.optional(v.string()),
+    personSignals: v.optional(v.array(personSignal)),
   })
     .index("by_ownerId_and_startedAt", ["ownerId", "startedAt"])
     .index("by_ownerId_and_status", ["ownerId", "status"]),
@@ -196,6 +350,47 @@ export default defineSchema({
     key: v.string(),
     value: v.string(),
   }).index("by_key", ["key"]),
+
+  days: defineTable({
+    ownerId: v.id("users"),
+    date: v.string(),
+    score: v.number(),
+    usual: v.optional(v.number()),
+    headline: v.optional(v.string()),
+    take: v.optional(v.string()),
+    mood: dayMood,
+    people: dayPeople,
+    activity: dayActivity,
+    conversationIds: v.array(v.id("conversations")),
+    dataDays: v.number(),
+    computedAt: v.number(),
+    writtenAt: v.optional(v.number()),
+    userRating: v.optional(dayRating),
+  }).index("by_ownerId_and_date", ["ownerId", "date"]),
+
+  traits: defineTable({
+    ownerId: v.id("users"),
+    kind: traitKind,
+    label: v.string(),
+    reason: v.string(),
+    source: traitSource,
+    evidenceCount: v.number(),
+    evidence: v.array(v.id("conversations")),
+    confidence: v.number(),
+    lastSeenAt: v.number(),
+    toldAt: v.optional(v.number()),
+    removed: v.boolean(),
+  })
+    .index("by_ownerId_and_kind", ["ownerId", "kind"])
+    .index("by_ownerId_and_label", ["ownerId", "label"]),
+
+  profiles: defineTable({
+    ownerId: v.id("users"),
+    identity: v.optional(v.string()),
+    lifts: v.array(lift),
+    dataDays: v.number(),
+    computedAt: v.number(),
+  }).index("by_ownerId", ["ownerId"]),
 
   mcpTokens: defineTable({
     ownerId: v.id("users"),

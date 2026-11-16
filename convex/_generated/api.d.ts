@@ -10,11 +10,13 @@
 
 import type * as auth from "../auth.js";
 import type * as connections from "../connections.js";
+import type * as contacts from "../contacts.js";
 import type * as conversations from "../conversations.js";
 import type * as crons from "../crons.js";
 import type * as extract from "../extract.js";
 import type * as followups from "../followups.js";
 import type * as http from "../http.js";
+import type * as insights from "../insights.js";
 import type * as integrations_catalog from "../integrations/catalog.js";
 import type * as integrations_fixtures_calendar from "../integrations/fixtures/calendar.js";
 import type * as integrations_fixtures_email from "../integrations/fixtures/email.js";
@@ -47,11 +49,13 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   connections: typeof connections;
+  contacts: typeof contacts;
   conversations: typeof conversations;
   crons: typeof crons;
   extract: typeof extract;
   followups: typeof followups;
   http: typeof http;
+  insights: typeof insights;
   "integrations/catalog": typeof integrations_catalog;
   "integrations/fixtures/calendar": typeof integrations_fixtures_calendar;
   "integrations/fixtures/email": typeof integrations_fixtures_email;
