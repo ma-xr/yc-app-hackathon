@@ -377,3 +377,7 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - Home is now the walk. The capybara sits in the centre, and under it a route card is built from real open items: up to three people with something open, then tonight's reflection as "One thought". "Start the walk" goes stop by stop: "Stop 2 of 4 · Mom", a progress bar, Jesse's line in big serif quotes (spoken unless voice is off), and Yes or Skip. Yes runs the existing action: send the drafted text, add the plan to the calendar, mark it done, or open the check-in. A spoken "yes" or "skip" works too, through the always-on listener; wake word, addressed replies and TTS are unchanged.
 - "Your Jesse" customizer (`src/app/your-jesse.tsx`) with a live preview. Fur: six clay recolours made from the same art. Wearing: a scarf, beanie, headphones or flower, drawn in react-native-svg with clay-style gradients, in five colours. Mood: calm, happy or sleepy. Glow: five halo colours. The choice is saved on the device with the existing SecureStore/localStorage prefs, and the customised capybara shows everywhere, tab icon included.
 - No new packages and no Convex changes. tsc and expo lint are clean.
+
+## Route card labels (YCAP-9)
+
+- Route stop labels on Home no longer truncate: the pins are wider and wrap instead of clipping, so "One thought" shows in full.
