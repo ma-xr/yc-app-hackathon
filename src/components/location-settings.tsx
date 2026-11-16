@@ -1,9 +1,11 @@
 import { useMutation, useQuery } from 'convex/react';
 import { useState } from 'react';
 import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { api } from '../../convex/_generated/api';
 import { relativeDay, time } from '@/components/format';
+import { Enter } from '@/components/motion';
 import { Button, Card, Chip, Divider, SectionLabel } from '@/components/ui';
 import {
   enableBackgroundLocation,
@@ -12,6 +14,7 @@ import {
   useLocationStatus,
   type LocationStatus,
 } from '@/lib/location';
+import { fadeIn, fadeOut, layout } from '@/theme/motion';
 import { C, T } from '@/theme/tokens';
 
 export function locationState(s: LocationStatus) {
@@ -38,50 +41,56 @@ export function LocationPrompt() {
 
   if (s.permission !== 'granted') {
     return (
-      <Card style={styles.card}>
-        <Text style={T.cardTitle}>Remember where things happen</Text>
-        <Text style={T.bodySmall}>
-          With your location, Jesse notes where each conversation happens and where you spend your time, so it can say
-          things like “you and Sam keep meeting at Blue Bottle”.
-        </Text>
-        <Text style={T.meta}>
-          Places stay in your Jesse account. Pause it or delete every place in Connections whenever you like.
-        </Text>
-        <View style={styles.actions}>
-          <Button
-            compact
-            icon="pin"
-            label={s.permission === 'denied' && !s.canAskAgain ? 'Open Settings' : 'Turn on location'}
-            onPress={() => void enableLocation()}
-          />
-        </View>
-      </Card>
+      <Enter>
+        <Card style={styles.card}>
+          <Text style={T.cardTitle}>Remember where things happen</Text>
+          <Text style={T.bodySmall}>
+            With your location, Jesse notes where each conversation happens and where you spend your time, so it can say
+            things like “you and Sam keep meeting at Blue Bottle”.
+          </Text>
+          <Text style={T.meta}>
+            Places stay in your Jesse account. Pause it or delete every place in Connections whenever you like.
+          </Text>
+          <View style={styles.actions}>
+            <Button
+              compact
+              icon="pin"
+              label={s.permission === 'denied' && !s.canAskAgain ? 'Open Settings' : 'Turn on location'}
+              onPress={() => void enableLocation()}
+            />
+          </View>
+        </Card>
+      </Enter>
     );
   }
 
   if (s.paused) {
     return (
-      <Card style={styles.card}>
-        <Text style={T.cardTitle}>Location is paused</Text>
-        <Text style={T.bodySmall}>Jesse isn’t noting new places. What it already kept stays until you delete it.</Text>
-        <View style={styles.actions}>
-          <Button compact label="Resume" onPress={() => void setLocationPaused(false)} />
-        </View>
-      </Card>
+      <Enter>
+        <Card style={styles.card}>
+          <Text style={T.cardTitle}>Location is paused</Text>
+          <Text style={T.bodySmall}>Jesse isn’t noting new places. What it already kept stays until you delete it.</Text>
+          <View style={styles.actions}>
+            <Button compact label="Resume" haptic="selection" onPress={() => void setLocationPaused(false)} />
+          </View>
+        </Card>
+      </Enter>
     );
   }
 
   if (s.backgroundAvailable && !s.background) {
     return (
-      <Card style={styles.card}>
-        <Text style={T.cardTitle}>Keep noting places while Jesse is closed</Text>
-        <Text style={T.bodySmall}>
-          Right now Jesse only notes places while it’s open. Allow location all the time to see the whole week.
-        </Text>
-        <View style={styles.actions}>
-          <Button compact variant="outline" label="Allow all the time" onPress={() => void enableBackgroundLocation()} />
-        </View>
-      </Card>
+      <Enter>
+        <Card style={styles.card}>
+          <Text style={T.cardTitle}>Keep noting places while Jesse is closed</Text>
+          <Text style={T.bodySmall}>
+            Right now Jesse only notes places while it’s open. Allow location all the time to see the whole week.
+          </Text>
+          <View style={styles.actions}>
+            <Button compact variant="outline" label="Allow all the time" onPress={() => void enableBackgroundLocation()} />
+          </View>
+        </Card>
+      </Enter>
     );
   }
 
@@ -128,11 +137,11 @@ export function LocationSettings() {
           </View>
           <Text style={T.bodySmall}>{detail}</Text>
           {info?.lastPingAt ? (
-            <Text style={T.meta}>
+            <Animated.Text entering={fadeIn} layout={layout} style={T.meta}>
               Last place noted {relativeDay(info.lastPingAt)} at {time(info.lastPingAt)}
-            </Text>
+            </Animated.Text>
           ) : null}
-          <View style={styles.actions}>
+          <Animated.View layout={layout} style={styles.actions}>
             {s.permission !== 'granted' ? (
               <Button compact icon="pin" label="Turn on location" onPress={() => void enableLocation()} />
             ) : (
@@ -140,22 +149,27 @@ export function LocationSettings() {
                 compact
                 variant="outline"
                 label={s.paused ? 'Resume' : 'Pause location'}
+                haptic="selection"
                 onPress={() => void setLocationPaused(!s.paused)}
               />
             )}
             {s.permission === 'granted' && !s.paused && s.backgroundAvailable && !s.background ? (
               <Button compact variant="outline" label="Allow all the time" onPress={() => void enableBackgroundLocation()} />
             ) : null}
-          </View>
+          </Animated.View>
         </View>
         <Divider />
         <View style={styles.row}>
           <Text style={T.cardTitle}>Delete location history</Text>
           <Text style={T.bodySmall}>Removes every place Jesse noted and the place on each conversation.</Text>
-          <View style={styles.actions}>
+          <Animated.View layout={layout} style={styles.actions}>
             <Button compact variant="outline" label="Delete history" onPress={remove} />
-            {note ? <Text style={[T.meta, { flexShrink: 1, color: C.muted }]}>{note}</Text> : null}
-          </View>
+            {note ? (
+              <Animated.Text key={note} entering={fadeIn} exiting={fadeOut} style={[T.meta, { flexShrink: 1, color: C.muted }]}>
+                {note}
+              </Animated.Text>
+            ) : null}
+          </Animated.View>
         </View>
       </Card>
     </>

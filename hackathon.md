@@ -456,6 +456,14 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 
 - Contacts calls `contacts.sync` and `generatePhotoUploadUrl` from #53 instead of the placeholder, and prefers `avatarKey` and `photoUrl` from the API over the bundled portrait match. Rows, buttons and loading states use the shared motion primitives (PressableScale, IconButton, skeletons). Insights reuses the Contacts portraits (#54, #55).
 
+## Screen polish pass (YCH-33)
+
+- Talk, Walk, Your Jesse, the tab bar, Settings/Connections, MCP, sign-in and the conversation page now use the shared motion primitives: spring press on every tappable, staggered spring enters for cards and rows, spring layout transitions for replies and sections, skeletons instead of blank flashes, and light haptics on talk, send, save and tab changes.
+- Every tappable is at least 44 pt (real size or hitSlop). Modals clear the home indicator, top controls sit below the status bar, and "Type to Jesse" and the sign-in form stay above the keyboard (KeyboardAvoidingView with padding on both platforms, since SDK 58 is edge-to-edge).
+- The capybara no longer snaps back to its first frame when listening or speaking starts; its loops resume from where they are.
+- `<Enter list>` (entering only) for rows in FlatList, SectionList or horizontal lists, and layout transitions are off on web, where they overlapped rows.
+- Verified: tsc and expo lint are clean; Talk, Walk and Your Jesse rendered on Expo web at 393×852. Not yet verified on a phone.
+
 ## Final app (main at db48268)
 
 - **Talk:** press to talk with Jesse, a capybara friend who knows today's context (who you saw, where, how it felt) and matches your mood. Passive capture runs in the background in 10-minute segments; silent segments are dropped on the device, voiced ones are transcribed and extracted on Convex, and no audio or transcript is stored.

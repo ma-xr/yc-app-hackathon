@@ -17,6 +17,7 @@ import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop,
 
 import { ART, GLOWS, useLook, type Expression, type Look, type Pose } from '@/lib/jesse-look';
 import { useIsSpeaking } from '@/lib/voice';
+import { SPRING } from '@/theme/motion';
 import { C } from '@/theme/tokens';
 
 const REST: Record<Expression, Pose> = { calm: 'idle', happy: 'happy', sleepy: 'blink' };
@@ -198,15 +199,24 @@ export function Orb({
   const sway = useSharedValue(0);
   const hop = useSharedValue(0);
   const halo = useSharedValue(0);
+  const live = useSharedValue(listening ? 1 : 0);
   const r1 = useSharedValue(0);
   const r2 = useSharedValue(0);
 
   useEffect(() => {
-    [breathe, sway, halo, r1, r2].forEach((v) => {
-      cancelAnimation(v);
-      v.value = 0;
-    });
-    if (reduceMotion) return;
+    live.value = reduceMotion ? (listening ? 1 : 0) : withSpring(listening ? 1 : 0, SPRING.gentle);
+  }, [listening, reduceMotion, live]);
+
+  useEffect(() => {
+    [breathe, sway, halo, r1, r2].forEach((v) => cancelAnimation(v));
+    r1.value = 0;
+    r2.value = 0;
+    if (reduceMotion) {
+      breathe.value = 0;
+      sway.value = 0;
+      halo.value = 0;
+      return;
+    }
     const breatheMs = listening ? 1400 : speaking ? 900 : 4200;
     breathe.value = withRepeat(
       withSequence(
@@ -237,9 +247,9 @@ export function Orb({
 
   const bodyStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateY: -6 * breathe.value - 18 * hop.value + (listening ? 6 : 0) },
-      { rotate: `${(listening ? 5 : 2) * sway.value}deg` },
-      { scale: 1 + 0.03 * breathe.value + (listening ? 0.04 : 0) },
+      { translateY: -6 * breathe.value - 18 * hop.value + 6 * live.value },
+      { rotate: `${(2 + 3 * live.value) * sway.value}deg` },
+      { scale: 1 + 0.03 * breathe.value + 0.04 * live.value },
     ],
   }));
   const haloStyle = useAnimatedStyle(() => ({ opacity: 0.6 + 0.4 * halo.value }));

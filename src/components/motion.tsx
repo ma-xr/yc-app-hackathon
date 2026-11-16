@@ -14,13 +14,22 @@ import { C, S } from '@/theme/tokens';
 
 export function Enter({
   index = 0,
+  list = false,
   children,
   style,
 }: {
   index?: number;
+  list?: boolean;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
+  if (list) {
+    return (
+      <Animated.View entering={enter(index)} style={style}>
+        {children}
+      </Animated.View>
+    );
+  }
   return (
     <Animated.View entering={enter(index)} exiting={fadeOut} layout={layout} style={style}>
       {children}

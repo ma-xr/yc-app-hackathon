@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import type { Doc } from '../../convex/_generated/dataModel';
 import { firstName, shortDate, time } from '@/components/format';
 import { Icon } from '@/components/icon';
+import { PressableScale } from '@/components/pressable-scale';
 import { Card, Chip, type Tone } from '@/components/ui';
 import { C, F, T } from '@/theme/tokens';
 
@@ -51,13 +52,9 @@ export function EntryCard({
   );
   if (!onPress) return body;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? title}
-      onPress={onPress}
-      style={({ pressed }) => pressed && { opacity: 0.75 }}>
+    <PressableScale accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title} scaleTo={0.98} onPress={onPress}>
       {body}
-    </Pressable>
+    </PressableScale>
   );
 }
 
