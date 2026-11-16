@@ -1,8 +1,10 @@
 import { router } from 'expo-router';
-import { useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 
 import { Orb, OrbArt } from '@/components/orb';
+import { PressableScale } from '@/components/pressable-scale';
 import { Button, Screen } from '@/components/ui';
 import {
   ACCENTS,
@@ -18,18 +20,27 @@ import {
   type Glow,
   type Look,
 } from '@/lib/jesse-look';
+import { enter, fadeOut, layout, SPRING } from '@/theme/motion';
 import { C, F, S, T } from '@/theme/tokens';
 
 const keys = <O extends object>(o: O) => Object.keys(o) as (keyof O)[];
 const pick = <V,>(list: readonly V[]) => list[Math.floor(Math.random() * list.length)];
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, index, children }: { title: string; index: number; children: ReactNode }) {
   return (
-    <View style={styles.section}>
+    <Animated.View entering={enter(index)} exiting={fadeOut} layout={layout} style={styles.section}>
       <Text style={T.label}>{title}</Text>
       <View style={styles.row}>{children}</View>
-    </View>
+    </Animated.View>
   );
+}
+
+function useSelected(selected: boolean): SharedValue<number> {
+  const on = useSharedValue(selected ? 1 : 0);
+  useEffect(() => {
+    on.value = withSpring(selected ? 1 : 0, SPRING.bouncy);
+  }, [on, selected]);
+  return on;
 }
 
 function Swatch({
@@ -43,15 +54,26 @@ function Swatch({
   selected: boolean;
   onPress: () => void;
 }) {
+  const on = useSelected(selected);
+  const ring = useAnimatedStyle(() => ({
+    opacity: on.value,
+    transform: [{ scale: 0.82 + 0.18 * on.value }],
+  }));
+  const dot = useAnimatedStyle(() => ({
+    transform: [{ scale: 0.94 + 0.06 * on.value }],
+  }));
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
+      haptic="selection"
+      scaleTo={0.9}
       accessibilityRole="radio"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
       style={styles.swatchWrap}>
-      <View style={[styles.swatchRing, selected && { borderColor: C.ink }]}>
-        <View
+      <View style={styles.swatchRing}>
+        <Animated.View pointerEvents="none" style={[styles.ringOn, ring]} />
+        <Animated.View
           style={[
             styles.swatch,
             color === 'transparent'
@@ -62,11 +84,12 @@ function Swatch({
                   borderStyle: 'dashed',
                 }
               : { backgroundColor: color },
+            dot,
           ]}
         />
       </View>
       <Text style={[styles.swatchLabel, selected && { color: C.ink, fontFamily: F.semibold }]}>{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -81,16 +104,25 @@ function Tile({
   selected: boolean;
   onPress: () => void;
 }) {
+  const on = useSelected(selected);
+  const border = useAnimatedStyle(() => ({ opacity: on.value }));
+  const art = useAnimatedStyle(() => ({
+    transform: [{ scale: 0.94 + 0.06 * on.value }],
+  }));
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
+      haptic="selection"
       accessibilityRole="radio"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
-      style={[styles.tile, selected && styles.tileOn]}>
-      <OrbArt size={52} look={look} />
+      style={styles.tile}>
+      <Animated.View pointerEvents="none" style={[styles.tileOn, border]} />
+      <Animated.View style={art}>
+        <OrbArt size={52} look={look} />
+      </Animated.View>
       <Text style={[styles.tileLabel, selected && { color: C.ink }]}>{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -103,14 +135,14 @@ export default function YourJesse() {
   };
 
   return (
-    <Screen scroll={false}>
+    <Screen scroll={false} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Text style={T.h1} accessibilityRole="header">
           Your Jesse
         </Text>
-        <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button">
+        <PressableScale onPress={() => router.back()} accessibilityRole="button" style={styles.doneHit}>
           <Text style={styles.done}>Done</Text>
-        </Pressable>
+        </PressableScale>
       </View>
       <Text style={[T.body, { color: C.muted, marginTop: -6 }]}>
         Make Jesse yours. It walks home with you every night.
@@ -120,7 +152,7 @@ export default function YourJesse() {
         <Orb listening={false} onPress={() => setHop((n) => n + 1)} cheer={hop} size={170} look={look} />
       </View>
       <ScrollView contentContainerStyle={styles.options} showsVerticalScrollIndicator={false}>
-        <Section title="Fur">
+        <Section title="Fur" index={0}>
           {keys(FURS).map((fur: Fur) => (
             <Swatch
               key={fur}
@@ -132,7 +164,7 @@ export default function YourJesse() {
           ))}
         </Section>
 
-        <Section title="Wearing">
+        <Section title="Wearing" index={1}>
           {keys(ACCESSORIES).map((accessory: Accessory) => (
             <Tile
               key={accessory}
@@ -145,7 +177,7 @@ export default function YourJesse() {
         </Section>
 
         {look.accessory !== 'none' ? (
-          <Section title={`${ACCESSORIES[look.accessory]} colour`}>
+          <Section title={`${ACCESSORIES[look.accessory]} colour`} index={2}>
             {ACCENTS.map((accent, i) => (
               <Swatch
                 key={accent}
@@ -158,7 +190,7 @@ export default function YourJesse() {
           </Section>
         ) : null}
 
-        <Section title="Mood">
+        <Section title="Mood" index={3}>
           {keys(EXPRESSIONS).map((expression: Expression) => (
             <Tile
               key={expression}
@@ -170,7 +202,7 @@ export default function YourJesse() {
           ))}
         </Section>
 
-        <Section title="Glow">
+        <Section title="Glow" index={4}>
           {keys(GLOWS).map((glow: Glow) => (
             <Swatch
               key={glow}
@@ -206,18 +238,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
+  },
+  doneHit: {
+    minHeight: S.touch,
+    minWidth: S.touch,
+    paddingHorizontal: 8,
+    marginRight: -8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   done: { fontFamily: F.bold, fontSize: 16, color: C.accent },
   preview: { alignItems: 'center', marginVertical: -26 },
   options: { gap: S.gap, paddingBottom: 40 },
   section: { gap: 10 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  swatchWrap: { alignItems: 'center', gap: 4, width: 50 },
-  swatchRing: {
-    padding: 3,
+  swatchWrap: { alignItems: 'center', gap: 4, width: 50, minHeight: S.touch },
+  swatchRing: { padding: 5 },
+  ringOn: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: C.ink,
   },
   swatch: { width: 36, height: 36, borderRadius: 18 },
   swatchLabel: { fontFamily: F.medium, fontSize: 11, color: C.muted },
@@ -231,6 +277,15 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  tileOn: { borderColor: C.accent },
+  tileOn: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    borderRadius: S.cardRadius - 8,
+    borderWidth: 2,
+    borderColor: C.accent,
+  },
   tileLabel: { fontFamily: F.semibold, fontSize: 11, color: C.muted },
 });

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { fadeIn } from '@/theme/motion';
 import { C, F, S, shadow, T } from '@/theme/tokens';
 
 const H = 170;
@@ -22,24 +24,23 @@ export function RouteCard({ labels, reached, title }: { labels: string[]; reache
       <Text style={[T.meta, { color: C.muted }]}>{title}</Text>
       <View style={{ height: H }}>
         {w > 0 ? (
-          <Svg width={w} height={H}>
-            {points.slice(1).map((p, i) => (
-              <Path
-                key={i}
-                d={segment(points[i], p)}
-                stroke={i < reached ? C.accent : C.chipBorder}
-                strokeWidth={i < reached ? 6 : 5}
-                strokeLinecap="round"
-                fill="none"
-              />
-            ))}
-            {points.map((p, i) => (
-              <Circle key={i} cx={p.x} cy={p.y} r={i === reached ? 7 : 5} fill={i <= reached ? C.accent : C.chipBorder} />
-            ))}
-          </Svg>
-        ) : null}
-        {w > 0
-          ? labels.map((label, i) => (
+          <Animated.View entering={fadeIn} style={StyleSheet.absoluteFill}>
+            <Svg width={w} height={H}>
+              {points.slice(1).map((p, i) => (
+                <Path
+                  key={i}
+                  d={segment(points[i], p)}
+                  stroke={i < reached ? C.accent : C.chipBorder}
+                  strokeWidth={i < reached ? 6 : 5}
+                  strokeLinecap="round"
+                  fill="none"
+                />
+              ))}
+              {points.map((p, i) => (
+                <Circle key={i} cx={p.x} cy={p.y} r={i === reached ? 7 : 5} fill={i <= reached ? C.accent : C.chipBorder} />
+              ))}
+            </Svg>
+            {labels.map((label, i) => (
               <View
                 key={label + i}
                 style={[
@@ -47,12 +48,13 @@ export function RouteCard({ labels, reached, title }: { labels: string[]; reache
                   { left: Math.min(Math.max(points[i].x - 50, -6), w - 94), top: points[i].y - 36 },
                   i === reached && { backgroundColor: C.accent },
                 ]}>
-                <Text style={[styles.pinText, i === reached && { color: C.onAccent }]}>
+                <Text style={[styles.pinText, i === reached && { color: C.onAccent }]} numberOfLines={1}>
                   {label}
                 </Text>
               </View>
-            ))
-          : null}
+            ))}
+          </Animated.View>
+        ) : null}
       </View>
     </View>
   );

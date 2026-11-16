@@ -1,13 +1,16 @@
 import { useQuery } from 'convex/react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { firstName, relativeDay, time } from '@/components/format';
+import { Enter } from '@/components/motion';
 import { Button, Card, Chip, type Tone } from '@/components/ui';
 import { useItemActions, type ItemWithPerson } from '@/data/hooks';
 import { useFollowupActions } from '@/data/people';
 import { addToCalendar, openComposer } from '@/lib/actions';
+import { fadeIn, layout } from '@/theme/motion';
 import { C, T } from '@/theme/tokens';
 
 const DAY = 86_400_000;
@@ -35,12 +38,14 @@ type Followup = ReturnType<typeof useFollowupsByItem> extends Map<unknown, infer
 export function Takeaways({ items, followups }: { items: ItemWithPerson[]; followups: Map<Id<'items'>, Followup> }) {
   if (!items.length) return null;
   return (
-    <View style={styles.list}>
+    <Animated.View layout={layout} style={styles.list}>
       <Text style={[T.label, styles.label]}>Takeaways from this conversation</Text>
-      {items.map((item) => (
-        <Takeaway key={item._id} item={item} followup={followups.get(item._id)} />
+      {items.map((item, i) => (
+        <Enter key={item._id} index={i}>
+          <Takeaway item={item} followup={followups.get(item._id)} />
+        </Enter>
       ))}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -73,10 +78,12 @@ export function Takeaway({ item, followup }: { item: ItemWithPerson; followup?: 
         </View>
         <Text style={T.cardTitle}>{item.text}</Text>
       </View>
-      <View style={styles.actions}>
+      <Animated.View layout={layout} style={styles.actions}>
         {item.kind === 'plan' ? (
           item.calendarEventId ? (
-            <Chip tone="green">Going · in your calendar</Chip>
+            <Animated.View entering={fadeIn}>
+              <Chip tone="green">Going · in your calendar</Chip>
+            </Animated.View>
           ) : (
             <>
               <Button label="Going" icon="calendarPlus" compact accessibilityLabel={`Going: ${item.text}`} onPress={() => void addCalendar()} />
@@ -85,7 +92,7 @@ export function Takeaway({ item, followup }: { item: ItemWithPerson; followup?: 
           )
         ) : null}
         {item.kind === 'urgent' && !item.calendarEventId ? (
-          <Button label="Add to calendar" icon="calendarPlus" compact onPress={() => void addCalendar()} />
+          <Button label="Add to calendar" icon="calendarPlus" compact haptic={false} onPress={() => void addCalendar()} />
         ) : null}
         {followup ? (
           <Button
@@ -93,6 +100,7 @@ export function Takeaway({ item, followup }: { item: ItemWithPerson; followup?: 
             icon="message"
             compact
             variant={item.kind === 'plan' ? 'outline' : 'primary'}
+            haptic="light"
             accessibilityLabel={`Send follow-up${who ? ` to ${who}` : ''}: ${item.text}`}
             onPress={() => void sendFollowup()}
           />
@@ -103,11 +111,12 @@ export function Takeaway({ item, followup }: { item: ItemWithPerson; followup?: 
             icon="check"
             variant="outline"
             compact
+            haptic="light"
             accessibilityLabel={`Mark done: ${item.text}`}
             onPress={() => void done(item._id)}
           />
         ) : null}
-      </View>
+      </Animated.View>
     </Card>
   );
 }

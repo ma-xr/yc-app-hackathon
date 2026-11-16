@@ -1,10 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { firstName, relativeDay } from '@/components/format';
 import { Icon } from '@/components/icon';
 import { Avatar, Button, Card, Chip, type Tone } from '@/components/ui';
 import { useItemActions, type ItemWithPerson } from '@/data/hooks';
 import { addToCalendar, openComposer } from '@/lib/actions';
+import { layout } from '@/theme/motion';
 import { C, T } from '@/theme/tokens';
 
 const KIND_CHIP: Partial<Record<ItemWithPerson['kind'], { label: string; tone: Tone }>> = {
@@ -58,26 +60,27 @@ export function ForgetCard({ item }: { item: ItemWithPerson }) {
           </View>
         )}
         <View style={{ flex: 1, gap: 6 }}>
-          <Text style={T.cardTitle}>{item.text}</Text>
+          <Text style={[T.cardTitle, { flexShrink: 1 }]}>{item.text}</Text>
           <View style={styles.metaRow}>
             {chip ? <Chip tone={chip.tone}>{chip.label}</Chip> : null}
             {due ? <Text style={T.meta}>{due}</Text> : null}
           </View>
         </View>
       </View>
-      <View style={styles.actions}>
+      <Animated.View layout={layout} style={styles.actions}>
         {action ? (
-          <Button label={action.label} icon={action.icon} onPress={action.run} compact />
+          <Button label={action.label} icon={action.icon} onPress={action.run} compact haptic={false} />
         ) : null}
         <Button
           label="Done"
           icon="check"
           variant="outline"
           compact
+          haptic="light"
           accessibilityLabel={`Mark done: ${item.text}`}
           onPress={() => void done(item._id)}
         />
-      </View>
+      </Animated.View>
     </Card>
   );
 }
@@ -94,5 +97,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actions: { flexDirection: 'row', gap: 8, paddingLeft: 52 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingLeft: 52 },
 });

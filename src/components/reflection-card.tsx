@@ -1,8 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { Button } from '@/components/ui';
+import { fadeOut, layout } from '@/theme/motion';
 import { C, F, S, T } from '@/theme/tokens';
 
 export function ReflectionCard({ question }: { question: string }) {
@@ -10,19 +12,19 @@ export function ReflectionCard({ question }: { question: string }) {
   const [later, setLater] = useState(false);
   if (later) return null;
   return (
-    <View style={styles.card}>
+    <Animated.View exiting={fadeOut} layout={layout} style={styles.card}>
       <Text style={[T.label, { color: C.darkCardMuted }]}>Tonight’s reflection</Text>
       <Text style={styles.question}>{question}</Text>
       <View style={styles.actions}>
         <Button label="Reflect · 2 min" onPress={() => router.push('/reflect')} />
         <Button label="Later" variant="outlineLight" onPress={() => setLater(true)} />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   card: { backgroundColor: C.night, borderRadius: S.cardRadius, padding: 20, gap: 12 },
   question: { fontFamily: F.display, fontSize: 20, lineHeight: 26, color: C.onNight },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
 });
