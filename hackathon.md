@@ -431,3 +431,17 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - `contacts.sync` upserts expo-contacts by contact id, phone, email, then name.
 - Demo seed: 21 days across the Contacts cast (Maya Chen, Sam Rivera, David Okafor, Ethan Nguyen, Mom, Lena Ortiz, Dev Patel, Priya Shah, plus the other 28 contacts). Today lands at 74 with mood 67, people 83 and activity 72.
 - Verified: 60 convex-test tests (authz, score formulas, lifts, seed numbers), tsc, expo lint, plus one live OpenAI run of extraction and the day writer in a local test. Nothing deployed.
+## Motion and safe-area primitives (YCH-33)
+
+- `src/theme/motion.ts` is the one motion system: named springs (press, snappy, gentle, bouncy), a staggered spring `enter(index)` for lists and cards, `fadeIn`/`fadeOut`, a spring `layout` transition for things that appear or resize, and `haptic()` (expo-haptics; no-op on web). Every builder uses `ReduceMotion.System`, so Reduce Motion turns them off.
+- `PressableScale` (spring press-in on the UI thread, opacity instead of scale under Reduce Motion, optional haptic) and `IconButton` (44 pt target, `slopFor()` pads small visuals up to 44 pt) in `src/components/pressable-scale.tsx`. `Enter`, `Skeleton` and `SkeletonCard` in `src/components/motion.tsx`.
+- `Screen` takes `edges` (top by default; modals pass `['top', 'bottom']` to clear the home indicator), `keyboard` (KeyboardAvoidingView) and `contentStyle`. `Button` springs on press, has `disabled` and gives a light haptic on primary and dark buttons.
+- Picked Reanimated's built-in layout animations and springs instead of Moti or a keyboard library: both are already installed, run on the UI thread, and are in Expo Go. Added expo-haptics with `npx expo install` (in Expo Go). tsc and expo lint are clean.
+
+## Jesse talks like an excited friend (YCH-32)
+
+- Talk prompt rewritten: Jesse is openly glad you showed up, reacts to what you said before steering, asks at most one question, has its own take ("that thing with Sam about the Stripe interview stuck with me"), brings up one thing from the day at a time (the most emotionally live one), and never mentions clock times, counts, notes, data or recordings. Mood matching stays: gentler when low, playful when up.
+- The context Jesse sees has no clock times left: conversations and due items say "this morning", "around lunch", "yesterday", "on Thursday"; times inside gists, facts and items are softened the same way; counts are gone; today's conversations carry how they felt (from the conversation mood) so Jesse can pick what matters.
+- Talk replies use a strict JSON schema, which fixes the occasional empty reply ("Sorry, I lost that").
+- The opening line on Talk picks the most emotionally live conversation and is mood-aware ("Hey Ui! Okay, I need to hear about lunch with Sam. That seemed like a good one!"), and is now passed to Jesse as the first turn so a reply to it makes sense.
+- `scripts/jesse-eval.ts`: 12 scripted turns against the real prompt; fails on clock times, lists, meta talk, double questions, wrong mood, or an invented day. Passed 3 runs in a row with gpt-5-mini. tsc and 31 convex-tests pass.

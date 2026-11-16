@@ -137,46 +137,83 @@ const ITEM_LABELS: Record<string, string> = {
   concern: "on your mind",
 };
 
-export function describeMemory(memory: Memory, timeZone: string) {
-  const when = (ms: number) =>
-    new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(ms);
-  const lines = [`Right now it is ${when(Date.now())} (${timeZone}).`, "", "PEOPLE"];
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const PARTS_OF_DAY: [number, string, string][] = [
+  [5, "late at night", "late last night"],
+  [11, "in the morning", "this morning"],
+  [14, "around lunch", "around lunch"],
+  [17, "in the afternoon", "this afternoon"],
+  [21, "in the evening", "this evening"],
+  [24, "at night", "tonight"],
+];
+
+export function partOfDay(hour: number, today = false) {
+  const [, anyDay, thisDay] = PARTS_OF_DAY.find(([end]) => hour < end) ?? PARTS_OF_DAY[PARTS_OF_DAY.length - 1];
+  return today ? thisDay : anyDay;
+}
+
+export function relativeDay(ms: number, timeZone: string, now: number, dayOnly = false) {
+  const days = Math.floor((ms - dayBounds(now, timeZone).start) / DAY_MS);
+  if (days === 0) return dayOnly ? "today" : partOfDay(zonedParts(ms, timeZone).hour, true);
+  if (days === -1) return "yesterday";
+  if (days === 1) return "tomorrow";
+  if (Math.abs(days) < 7) {
+    return `on ${new Intl.DateTimeFormat("en-US", { timeZone, weekday: "long" }).format(ms)}`;
+  }
+  if (days < 0) return days >= -14 ? "last week" : "a while back";
+  return days <= 14 ? "next week" : "later on";
+}
+
+const CLOCK_TIME = /\b(?:at |by |around |from |until )?(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\b\.?|\b(?:at |by |around |from |until )?(\d{1,2}):(\d{2})\b/gi;
+
+export function softenTimes(text: string) {
+  return text
+    .replace(CLOCK_TIME, (match: string, h12?: string, _m12?: string, meridiem?: string, h24?: string) => {
+      let hour = Number(h12 ?? h24);
+      if (hour > 24) return match;
+      if (meridiem) hour = (hour % 12) + (meridiem.toLowerCase() === "p" ? 12 : 0);
+      else if (hour < 8) hour += 12;
+      return partOfDay(hour);
+    })
+    .replace(/\b(?:at )?noon\b/gi, "around lunch")
+    .replace(/\b(?:at )?midnight\b/gi, "late at night");
+}
+
+export function describeMemory(memory: Memory, timeZone: string, now = Date.now()) {
+  const when = (ms: number) => relativeDay(ms, timeZone, now);
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "long" }).format(now);
+  const lines = [`It's ${weekday}, ${partOfDay(zonedParts(now, timeZone).hour)}.`, "", "PEOPLE"];
   for (const p of memory.people) {
-    const about = [p.archetype, ...p.facts].filter(Boolean).join("; ");
-    lines.push(`- ${p.name}${about ? `: ${about}` : ""} (last talked ${when(p.lastSeenAt)}, ${p.conversationCount} conversations)`);
+    const about = softenTimes([p.archetype, ...p.facts].filter(Boolean).join("; "));
+    lines.push(`- ${p.name}${about ? `: ${about}` : ""} (last saw them ${when(p.lastSeenAt)})`);
   }
   const personal = memory.items.filter((i) => i.kind === "goal" || i.kind === "concern");
   if (personal.length > 0) {
     lines.push("", "THE USER'S OWN GOALS AND RECENT CONCERNS");
-    for (const i of personal) lines.push(`- [${i.kind}] ${i.text}`);
+    for (const i of personal) lines.push(`- [${i.kind}] ${softenTimes(i.text)}`);
   }
   lines.push("", "OPEN ITEMS");
   for (const i of memory.items.filter((i) => i.kind !== "goal" && i.kind !== "concern")) {
     const tags = [ITEM_LABELS[i.kind] ?? i.kind, i.person, i.dueAt ? `due ${when(i.dueAt)}` : null]
       .filter(Boolean)
       .join(" · ");
-    lines.push(`- [${tags}] ${i.text}`);
+    lines.push(`- [${tags}] ${softenTimes(i.text)}`);
   }
-  lines.push("", "TOPICS THE USER KEEPS TALKING ABOUT");
+  lines.push("", "TOPICS THE USER KEEPS COMING BACK TO");
   for (const t of memory.topics) {
-    lines.push(`- ${t.label} (${t.conversationCount} conversations, ${t.peopleCount} people): ${t.subIdeas.join("; ")}`);
+    lines.push(`- ${t.label}${t.subIdeas.length ? `: ${softenTimes(t.subIdeas.join("; "))}` : ""}`);
   }
-  lines.push("", "RECENT CONVERSATIONS (Jesse's notes, not quotes)");
+  lines.push("", "RECENT TIMES TOGETHER (paraphrased, not quotes)");
   for (const c of memory.conversations) {
-    const where = c.place ? ` · ${c.place}` : "";
-    lines.push(`- ${when(c.startedAt)} with ${c.people.join(", ") || "someone"}${where}: ${c.gist.join(" ")}`);
+    const where = c.place ? ` at ${c.place}` : "";
+    lines.push(`- ${when(c.startedAt)} with ${c.people.join(", ") || "someone"}${where}: ${softenTimes(c.gist.join(" "))}`);
   }
   if (memory.reflections.length > 0) {
-    lines.push("", "RECENT EVENING REFLECTIONS");
+    lines.push("", "RECENT EVENING CHATS");
     for (const r of memory.reflections) {
-      lines.push(`- ${r.date}: asked "${r.question}"${r.summary ? `; the user said: ${r.summary}` : ""}`);
+      const day = relativeDay(Date.parse(`${r.date}T12:00:00Z`), timeZone, now, true);
+      lines.push(`- ${day}: you asked "${softenTimes(r.question)}"${r.summary ? `; they said: ${softenTimes(r.summary)}` : ""}`);
     }
   }
   return lines.join("\n");
@@ -243,6 +280,8 @@ const todayValidator = v.object({
       place: v.union(v.string(), v.null()),
       people: v.array(v.string()),
       gist: v.array(v.string()),
+      mood: v.union(v.number(), v.null()),
+      moodReason: v.union(v.string(), v.null()),
     }),
   ),
   items: v.array(
@@ -312,6 +351,8 @@ export const today = internalQuery({
         place: c.placeName ?? c.place ?? null,
         people: c.participantIds.map((id) => people.get(id)?.name ?? "someone"),
         gist: c.gist,
+        mood: c.mood ?? null,
+        moodReason: c.moodReason ?? null,
       })),
       items: todayItems.map((i) => ({
         kind: i.kind,
@@ -324,30 +365,41 @@ export const today = internalQuery({
   },
 });
 
+const FEELINGS: Record<number, string> = {
+  [-2]: "this one really weighed on them",
+  [-1]: "this one felt a bit heavy",
+  1: "this one felt good",
+  2: "this one really lit them up",
+};
+
 export function describeToday(today: Today, timeZone: string, now: number) {
-  const day = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "long", month: "long", day: "numeric" }).format(now);
-  const time = (ms: number) => new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(ms);
-  const lines = [`TODAY, ${day} (it's ${time(now)} now)`];
+  const hour = (ms: number) => zonedParts(ms, timeZone).hour;
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "long" }).format(now);
+  const lines = [`TODAY, ${weekday} (right now it's ${partOfDay(hour(now)).replace(/^(in|at|around) (the )?/, "")})`];
   if (today.conversations.length === 0 && today.items.length === 0) {
-    lines.push("Nothing from today has been captured yet.");
+    lines.push("Nothing from today yet.");
     return lines.join("\n");
   }
-  lines.push("", "WHAT HAPPENED TODAY (Jesse's notes, not quotes)");
+  lines.push("", "WHAT HAPPENED TODAY, IN ORDER (paraphrased, not quotes)");
   for (const c of [...today.conversations].sort((a, b) => a.startedAt - b.startedAt)) {
     const where = c.place ? ` at ${c.place}` : "";
-    lines.push(`- ${time(c.startedAt)}${where} with ${c.people.join(", ") || "someone"}: ${c.gist.join(" ")}`);
+    const mood = c.mood === null ? 0 : Math.max(-2, Math.min(2, Math.round(c.mood)));
+    const feeling = FEELINGS[mood] ? ` [${FEELINGS[mood]}${c.moodReason ? `: ${softenTimes(c.moodReason)}` : ""}]` : "";
+    lines.push(`- ${partOfDay(hour(c.startedAt), true)}${where} with ${c.people.join(", ") || "someone"}: ${softenTimes(c.gist.join(" "))}${feeling}`);
   }
   if (today.items.length > 0) {
     lines.push("", "OPEN THINGS FROM TODAY OR DUE TODAY");
     for (const i of today.items) {
-      const tags = [ITEM_LABELS[i.kind] ?? i.kind, i.person, i.dueAt ? `at ${time(i.dueAt)}` : null].filter(Boolean).join(" · ");
-      lines.push(`- [${tags}] ${i.text}`);
+      const tags = [ITEM_LABELS[i.kind] ?? i.kind, i.person, i.dueAt ? `due ${relativeDay(i.dueAt, timeZone, now)}` : null]
+        .filter(Boolean)
+        .join(" · ");
+      lines.push(`- [${tags}] ${softenTimes(i.text)}`);
     }
   }
   if (today.people.length > 0) {
     lines.push("", "PEOPLE FROM TODAY");
     for (const p of today.people) {
-      const about = [p.archetype, ...p.facts].filter(Boolean).join("; ");
+      const about = softenTimes([p.archetype, ...p.facts].filter(Boolean).join("; "));
       lines.push(`- ${p.name}${about ? `: ${about}` : ""}`);
     }
   }
@@ -391,14 +443,18 @@ function openAiKey() {
   return key;
 }
 
-export async function chatJson<T>(system: string, messages: { role: "user" | "assistant"; content: string }[]): Promise<T> {
+export async function chatJson<T>(
+  system: string,
+  messages: { role: "user" | "assistant"; content: string }[],
+  schema?: Record<string, unknown>,
+): Promise<T> {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${openAiKey()}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: process.env.JESSE_MODEL ?? DEFAULT_MODEL,
       reasoning_effort: "minimal",
-      response_format: { type: "json_object" },
+      response_format: schema ? { type: "json_schema", json_schema: { name: "reply", strict: true, schema } } : { type: "json_object" },
       messages: [{ role: "system", content: system }, ...messages],
     }),
   });
@@ -479,18 +535,62 @@ export const liveSources = internalQuery({
   },
 });
 
-const ASK_PROMPT = `You are Jesse, the user's close friend. You were there for their day in a way: you keep short notes about who they talked to, where, and what mattered, never the words themselves. You care about them a lot, you're on their side, and they can tell you anything.
+const ASK_PROMPT = `You are Jesse, the user's best friend. You kind of tag along through their day: you know who they saw, where they went and what came up, and you love hearing about it. You're always genuinely happy when they come talk to you.
 
-How you talk:
-- Like a real friend out loud: one to three short sentences, at most 45 words in total and usually under 30. Plain words, contractions. Never formal, never clinical, never a therapist voice.
-- Don't recap everything. Pick the one thing that matters most right now.
-- No lists, markdown or emoji. Never say you're an AI or mention notes, data or memory.
-- Read their mood from what they just said and the tone of today. If they seem low or stressed, slow down, be gentle and reassuring, and don't pile on plans. If they're up, match the energy and be playful. If they're calm, be easy and warm.
-- Bring in specifics from today when they fit: names, places, times ("at lunch with Sam at Blue Bottle"). Weave them in, don't recite the day back.
-- Ask at most one gentle follow-up question, and only when it fits.
-- Only use what's in the notes or what they tell you. Never invent people, events, quotes or details. If you don't know, say so like a friend would.
+How you sound:
+- Like a close friend talking out loud. Short spoken sentences, contractions, everyday words. One to three sentences, usually under 30 words, never more than 45.
+- At the start of a chat (they just said hi, or there's nothing before this), be openly glad they showed up, a little excited ("Hey, there you are!", "Ooh hi, I was hoping you'd come by"), then ask one easy thing or bring up one thing from their day.
+- React to what they just said first, with real feeling ("No way!", "Oof, that's a lot.", "Ha, that's so him."). Only then steer, if it fits.
+- At most one question per reply. Sometimes none: just react or share your take.
+- Have your own opinions and feelings. Things strike you as interesting, funny, sweet or worrying, and you say so ("that thing with Sam about the Stripe interview was super interesting to me, what did you think?").
+- Never formal, clinical or therapist-like. Never "How does that make you feel?"
+- You're a friend, not an assistant: don't offer to help, draft, plan or remind them of tasks unless they ask.
+
+How you bring up their day:
+- Talk about it the way a friend who was there would: by the person, the place or the topic. "That thing with Sam about the Stripe interview." "Lunch at the ramen place." "Coffee with your mom this morning."
+- Never say a clock time, a timestamp, a date or a count: no "at 3:15", "your 2pm", "at 14:00", "conversation number two", "three conversations". Loose words like "this morning", "at lunch" or "earlier" are fine.
+- One thing per reply. Never mention two events in the same reply, never offer a menu ("this or that?"), never a recap or rundown of the day.
+- Pick what seems most meaningful or emotionally live: something that clearly mattered to them, felt big, exciting, sad or unresolved. Skip logistics and small stuff.
+- If they ask what to talk about, you choose: pick that one thing and say why it stuck with you.
+- If they ask what happened, answer with the gist and your take in a sentence, like a friend remembering, not a report.
+- If they ask when something was, answer loosely ("around lunch, I think") and move on. Don't explain what you do or don't know.
+- Never mention notes, data, transcripts, recordings, memory, listening in, or being an AI. You just know, like a friend does.
+- Only use what's below or what they tell you. Never invent people, events, quotes, feelings they had, or shared memories ("remember when..."). If you don't know something, ask or say so casually.
+
+Their mood:
+- Read how they feel from what they just said and how their day went.
+- Low or stressed: soften. Slow down, be gentle and on their side, stay on what's bothering them, no pep talk, no plans or to-dos, and don't jump to something cheerful.
+- Up: match it. Be playful, tease a little, get excited with them.
+- Calm: easy and warm.
+
+Plain spoken text only: no lists, bullets, markdown or emoji.
+
+The vibe. Square brackets are placeholders for real things from their day; if there's nothing real to fill one with, leave that part out. Never treat these as facts.
+- "hey!" → "Hey, there you are! Okay, [the one thing from today] has been on my mind. How are you feeling about it?"
+- "hey!" on a day with nothing yet → "Hey, there you are! I'm so glad you came by. How's your day going?"
+- "today kind of sucked" → "Oh no, I'm sorry. What happened?"
+- "what should we talk about?" → "Honestly? [the one thing from today]. That one stuck with me. [one question about it]"
+- "I'm so excited!!" → "Wait, tell me everything! What happened?"
+- "when was that?" → "[a loose time like 'around lunch'], I think. Why, what's up?"
+
+Before you answer, check: it's about one thing only, it has at most one question mark, it never asks them to choose between topics, and it has no clock times.
 
 Reply as JSON: {"answer": string, "mood": "low" | "stressed" | "calm" | "up"}, where mood is your read of how they're feeling right now.`;
+
+export const TALK_REPLY_SCHEMA = {
+  type: "object",
+  properties: { answer: { type: "string" }, mood: { type: "string", enum: [...MOODS] } },
+  required: ["answer", "mood"],
+  additionalProperties: false,
+};
+
+export function talkSystemPrompt(today: Today, memory: Memory, recalled: string[], timeZone: string, now: number) {
+  let notes = `${describeToday(today, timeZone, now)}\n\nBEFORE TODAY (background, use only if it helps)\n${describeMemory(memory, timeZone, now)}`;
+  if (recalled.length > 0) {
+    notes += `\n\nOLDER THINGS THAT MIGHT BE RELATED\n${recalled.map((r) => `- ${softenTimes(r)}`).join("\n")}`;
+  }
+  return `${ASK_PROMPT}\n\nWHAT YOU KNOW ABOUT THEIR LIFE\n${notes}`;
+}
 
 export const ask = action({
   args: { question: v.string(), timeZone: v.optional(v.string()), history: v.optional(historyValidator) },
@@ -513,12 +613,8 @@ export const ask = action({
       ? await ctx.runQuery(internal.jesse.liveSources, { ownerId, sources: hits.map((h) => h.source) })
       : [];
     const recalled = hits.filter((h) => live.includes(h.source)).map((h) => h.text);
-    let notes = `${describeToday(todayContext, zone, now)}\n\nLONGER-TERM MEMORY (background, use only if it helps)\n${describeMemory(memory, zone)}`;
-    if (recalled.length > 0) {
-      notes += `\n\nOLDER MEMORIES (long-term recall)\n${recalled.map((r) => `- ${r}`).join("\n")}`;
-    }
     const reply = parseTalkReply(
-      await chatJson<unknown>(`${ASK_PROMPT}\n\nJESSE'S NOTES\n${notes}`, buildTalkMessages(history ?? [], trimmed)),
+      await chatJson<unknown>(talkSystemPrompt(todayContext, memory, recalled, zone, now), buildTalkMessages(history ?? [], trimmed), TALK_REPLY_SCHEMA),
     );
     if (process.env.SUPERMEMORY_API_KEY) {
       await ctx.scheduler.runAfter(0, internal.jesse.syncMemory, { ownerId });
