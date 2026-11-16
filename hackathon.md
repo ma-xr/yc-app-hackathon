@@ -451,3 +451,12 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - Insights uses the shared motion primitives from #51: PressableScale for rows and toggles, IconButton for the rating thumbs, Enter for the section cards and their rows, SkeletonCard while queries load.
 - Review fixes from #49: Insights follows the clock across midnight (`useNow`) unless you picked another day, person lifts open the contact, and "This is off" no longer claims to save feedback that has no API yet.
 - Verified: tsc and eslint on the Insights files; every view re-rendered on Expo web.
+
+## Screen polish pass (YCH-33)
+
+- Talk, Walk, Your Jesse, the tab bar, Settings/Connections, MCP, sign-in and the conversation page now use the shared motion primitives: spring press on every tappable, staggered spring enters for cards and rows, spring layout transitions for replies and sections, skeletons instead of blank flashes, and light haptics on talk, send, save and tab changes.
+- Every tappable is at least 44 pt (real size or hitSlop). Modals clear the home indicator, top controls sit below the status bar, and "Type to Jesse" and the sign-in form stay above the keyboard (KeyboardAvoidingView with padding on both platforms, since SDK 58 is edge-to-edge).
+- The capybara no longer snaps back to its first frame when listening or speaking starts; its loops resume from where they are.
+- `<Enter list>` (entering only) for rows in FlatList, SectionList or horizontal lists, and layout transitions are off on web, where they overlapped rows.
+- Verified: tsc and expo lint are clean; Talk, Walk and Your Jesse rendered on Expo web at 393×852. Not yet verified on a phone.
+

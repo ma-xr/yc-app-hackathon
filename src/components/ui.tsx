@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import {
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -55,7 +54,7 @@ export function Screen({
         },
       ]}>
       {keyboard ? (
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           {body}
         </KeyboardAvoidingView>
       ) : (

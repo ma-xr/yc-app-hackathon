@@ -32,11 +32,14 @@ export const enter = (index = 0) =>
 export const fadeIn = FadeIn.duration(220).reduceMotion(ReduceMotion.System);
 export const fadeOut = FadeOut.duration(160).reduceMotion(ReduceMotion.System);
 
-export const layout = LinearTransition.springify()
-  .damping(SPRING.snappy.damping)
-  .stiffness(SPRING.snappy.stiffness)
-  .mass(SPRING.snappy.mass)
-  .reduceMotion(ReduceMotion.System);
+export const layout =
+  Platform.OS === 'web'
+    ? undefined
+    : LinearTransition.springify()
+        .damping(SPRING.snappy.damping)
+        .stiffness(SPRING.snappy.stiffness)
+        .mass(SPRING.snappy.mass)
+        .reduceMotion(ReduceMotion.System);
 
 export type HapticKind = 'light' | 'medium' | 'selection' | 'success';
 
