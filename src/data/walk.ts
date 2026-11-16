@@ -96,18 +96,3 @@ export function useWalkRoute(now: number): Stop[] | undefined {
   }
   return stops;
 }
-
-function command(text: string) {
-  const t = text.toLowerCase().replace(/[^a-z' ]/g, ' ').replace(/\s+/g, ' ').trim();
-  return t.split(' ').length <= 4 ? t : null;
-}
-
-export function heardYes(text: string) {
-  const t = command(text);
-  return t !== null && /^(?:yes|yeah|yep|yup|sure|ok|okay|do it|send it|go ahead)(?: please| jesse| do it| send it)?$/.test(t);
-}
-
-export function heardSkip(text: string) {
-  const t = command(text);
-  return t !== null && /^(?:skip|skip it|next|no|nope|not now|maybe later|later|pass)(?: please| jesse| thanks)?$/.test(t);
-}

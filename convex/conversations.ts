@@ -56,21 +56,32 @@ export const get = query({
   },
 });
 
+export async function insertConversation(ctx: MutationCtx, ownerId: Id<"users">, startedAt: number, place?: string) {
+  return await ctx.db.insert("conversations", {
+    ownerId,
+    startedAt,
+    status: "listening",
+    participantIds: [],
+    place,
+    gist: [],
+    leftOutCount: 0,
+    pendingChunks: 0,
+    topicIds: [],
+  });
+}
+
+export async function closeConversation(ctx: MutationCtx, conversation: Doc<"conversations">, endedAt: number) {
+  await ctx.db.patch("conversations", conversation._id, {
+    endedAt,
+    status: (conversation.pendingChunks ?? 0) > 0 ? "processing" : "done",
+  });
+}
+
 export const start = mutation({
   args: { place: v.optional(v.string()) },
   handler: async (ctx, { place }) => {
     const ownerId = await requireUser(ctx);
-    return await ctx.db.insert("conversations", {
-      ownerId,
-      startedAt: Date.now(),
-      status: "listening",
-      participantIds: [],
-      place,
-      gist: [],
-      leftOutCount: 0,
-      pendingChunks: 0,
-      topicIds: [],
-    });
+    return await insertConversation(ctx, ownerId, Date.now(), place);
   },
 });
 
@@ -80,10 +91,7 @@ export const stop = mutation({
     const ownerId = await requireUser(ctx);
     const conversation = await requireOwned(ctx, "conversations", conversationId, ownerId);
     if (conversation.status !== "listening") return null;
-    await ctx.db.patch("conversations", conversationId, {
-      endedAt: Date.now(),
-      status: (conversation.pendingChunks ?? 0) > 0 ? "processing" : "done",
-    });
+    await closeConversation(ctx, conversation, Date.now());
     return null;
   },
 });

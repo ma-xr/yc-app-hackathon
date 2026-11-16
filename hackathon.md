@@ -396,3 +396,11 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - New tables: `days` (one row per user per date with the day score, usual, headline, take, and the Mood, People and Activity sections), `traits` (interest, goal, personality; learned or told; evidence and removed) and `profiles` (identity sentence and lifts).
 - Read API for the UI threads: `insights.week`, `insights.day`, `insights.evidence`, `insights.profile`, `insights.rateDay`, `insights.removeTrait`, `insights.refresh` (no-op until the compute lands), `contacts.list`, `contacts.get`.
 - Verified: convex-test authz and shape tests, tsc, expo lint. The compute, extraction and seed follow in the next PR.
+
+## Three tabs, Talk, and passive capture (YCAP-9)
+
+- The app now has three tabs: Talk, Insights (a placeholder until Poom's spec arrives) and Contacts (a stub that YCAP-21 replaces). Plans, People and Ideas stopped being tabs; the walk moved into its own modal.
+- Talk is minimal: the customized capybara, the last exchange, and one big tap-to-talk button, with "Type" as a fallback. Replies are spoken through the existing TTS.
+- `jesse.ask` loads TODAY's context in the user's time zone (conversations with place, people and gist; today's items; the people involved), reads the user's mood and answers as a warm, informal friend who matches it. It returns `{answer, mood}` and takes earlier turns as `history`.
+- The wake word and the 6-second transcription are gone. Passive capture records 10-minute mono 16 kHz 32 kbps segments and drops silent ones on the device using expo-audio metering. Voiced segments upload in the background with retry. `capture.ingestSegment` transcribes each one with diarization, attaches it to a conversation (a new one after 15 minutes without speech), runs extraction, and closes idle conversations through the scheduler.
+- Verified: tsc, expo lint and 15 convex-test tests are clean, and the screens render on Expo web.
