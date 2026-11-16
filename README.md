@@ -1,6 +1,12 @@
-# Welcome to your Expo app 👋
+# Jesse
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Jesse is a capybara friend on your phone, built for the YC Consumer Mobile Hackathon with Expo SDK 58 and Convex. It has three tabs:
+
+- **Talk:** press to talk with Jesse, who knows today's context (who you saw, where, how it felt) and matches your mood. Passive capture runs in the background in 10-minute segments, silence is skipped on the device, and no audio or transcripts are stored, only the extracted notes.
+- **Insights:** "How was your day?" shows a day score and mood, People and Activity sections, and an evidence sheet behind every fact. "Who are you?" shows your identity, what lifts you, interests, goals, personality and your orbit.
+- **Contacts:** a synced-looking contact list sorted by recent, time together, deepest, encounters or vibe, with rich profiles and the full conversation history (place, time and length). Location tags every conversation.
+
+Everything runs on Convex: extraction, the days, traits and lifts compute, nightly crons, an LLM writer that only puts computed numbers into words, and convex-test suites. Capy built it with a crew of agent threads (PRs #4 to #55), Revyl handles cloud builds and device checks, and Keiki brings Jesse to iMessage. The build log is in [hackathon.md](hackathon.md).
 
 ## Get started
 
