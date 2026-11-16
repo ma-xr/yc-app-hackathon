@@ -404,3 +404,11 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - `jesse.ask` loads TODAY's context in the user's time zone (conversations with place, people and gist; today's items; the people involved), reads the user's mood and answers as a warm, informal friend who matches it. It returns `{answer, mood}` and takes earlier turns as `history`.
 - The wake word and the 6-second transcription are gone. Passive capture records 10-minute mono 16 kHz 32 kbps segments and drops silent ones on the device using expo-audio metering. Voiced segments upload in the background with retry. `capture.ingestSegment` transcribes each one with diarization, attaches it to a conversation (a new one after 15 minutes without speech), runs extraction, and closes idle conversations through the scheduler.
 - Verified: tsc, expo lint and 15 convex-test tests are clean, and the screens render on Expo web.
+
+## Insights tab (YCAP-27)
+
+- Insights replaces the placeholder with layout A: a "How was your day?" / "Who are you?" toggle. The day view has the week strip of day scores, the summary card (score ring, usual, headline, Jesse's take, thumbs up or down with better/worse saved through `insights.rateDay`), Mood (curve plus high, low and steady facts), People (split by relationship, a row per person, the reach-out nudge), Activity (where your time went, what you talked about, a row per place, plus the place insights from #46) and the collapsed hour-by-hour timeline.
+- "Who are you?" shows the identity sentence, What lifts you, Interests, Goals and Personality with their source labels, and Your orbit. Under 5 days it swaps in a "N of 5 days" card with "Tell Jesse about yourself"; under 7 days sections say "no baseline yet".
+- Tapping any fact, timeline row or trait opens a bottom sheet with the source conversations (labels only), "This is off", "Open contact", and Remove for traits (`insights.removeTrait`).
+- Built against the merged read API; a typed dev-only fixture (`EXPO_PUBLIC_INSIGHTS_FIXTURE=full|new`, ignored outside `__DEV__`) fills the full view until the compute and seed land.
+- Verified: tsc and expo lint are clean; every view rendered on Expo web against a local backend.
