@@ -26,6 +26,7 @@ import type * as items from "../items.js";
 import type * as jesse from "../jesse.js";
 import type * as keiki from "../keiki.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_contactStats from "../lib/contactStats.js";
 import type * as mcp_memory from "../mcp/memory.js";
 import type * as mcp_server from "../mcp/server.js";
 import type * as mcp_tokens from "../mcp/tokens.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   jesse: typeof jesse;
   keiki: typeof keiki;
   "lib/auth": typeof lib_auth;
+  "lib/contactStats": typeof lib_contactStats;
   "mcp/memory": typeof mcp_memory;
   "mcp/server": typeof mcp_server;
   "mcp/tokens": typeof mcp_tokens;

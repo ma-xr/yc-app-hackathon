@@ -42,6 +42,33 @@ export const eventSource = v.union(
 
 export const connectionMode = v.union(v.literal("live"), v.literal("sample"), v.literal("off"));
 
+export const contactSource = v.union(v.literal("apple"), v.literal("demo"));
+
+export const profileFactKind = v.union(
+  v.literal("from"),
+  v.literal("interest"),
+  v.literal("working_on"),
+  v.literal("matters"),
+  v.literal("how_met"),
+  v.literal("relationship"),
+  v.literal("family"),
+  v.literal("life_event"),
+  v.literal("place"),
+  v.literal("gift_idea"),
+  v.literal("style"),
+  v.literal("food"),
+  v.literal("avoid"),
+);
+
+export const profileFact = v.object({
+  kind: profileFactKind,
+  text: v.string(),
+  conversationId: v.optional(v.id("conversations")),
+  learnedAt: v.number(),
+});
+
+export const interactionKind = v.union(v.literal("in_person"), v.literal("call"), v.literal("text"));
+
 export const mcpScope = v.union(v.literal("read:memory"), v.literal("write:notes"));
 
 export default defineSchema({
@@ -57,10 +84,52 @@ export default defineSchema({
     lastSeenAt: v.number(),
     conversationCount: v.number(),
     cadenceDays: v.optional(v.number()),
+    source: v.optional(contactSource),
+    emails: v.optional(v.array(v.string())),
+    phones: v.optional(v.array(v.string())),
+    birthday: v.optional(v.object({ month: v.number(), day: v.number(), year: v.optional(v.number()) })),
+    avatarKey: v.optional(v.string()),
+    photoStorageId: v.optional(v.id("_storage")),
+    lastSyncedAt: v.optional(v.number()),
+    profile: v.optional(v.array(profileFact)),
+    lastInteractionAt: v.optional(v.number()),
+    knownSince: v.optional(v.number()),
+    totalMinutes: v.optional(v.number()),
+    encounterCount: v.optional(v.number()),
+    depthScore: v.optional(v.number()),
+    funScore: v.optional(v.number()),
+    compatibilityScore: v.optional(v.number()),
+    deepTalkScore: v.optional(v.number()),
   })
     .index("by_ownerId", ["ownerId"])
     .index("by_ownerId_and_lastSeenAt", ["ownerId", "lastSeenAt"])
-    .index("by_ownerId_and_name", ["ownerId", "name"]),
+    .index("by_ownerId_and_name", ["ownerId", "name"])
+    .index("by_ownerId_and_contactId", ["ownerId", "contactId"])
+    .index("by_ownerId_and_lastInteractionAt", ["ownerId", "lastInteractionAt"])
+    .index("by_ownerId_and_totalMinutes", ["ownerId", "totalMinutes"])
+    .index("by_ownerId_and_encounterCount", ["ownerId", "encounterCount"])
+    .index("by_ownerId_and_depthScore", ["ownerId", "depthScore"])
+    .index("by_ownerId_and_funScore", ["ownerId", "funScore"])
+    .index("by_ownerId_and_compatibilityScore", ["ownerId", "compatibilityScore"])
+    .index("by_ownerId_and_deepTalkScore", ["ownerId", "deepTalkScore"]),
+
+  interactions: defineTable({
+    ownerId: v.id("users"),
+    personId: v.id("people"),
+    conversationId: v.optional(v.id("conversations")),
+    kind: interactionKind,
+    startedAt: v.number(),
+    minutes: v.number(),
+    placeName: v.optional(v.string()),
+    title: v.string(),
+    points: v.array(v.string()),
+    depth: v.number(),
+    fun: v.number(),
+    sharedInterests: v.optional(v.array(v.string())),
+  })
+    .index("by_personId_and_startedAt", ["personId", "startedAt"])
+    .index("by_conversationId", ["conversationId"])
+    .index("by_ownerId_and_startedAt", ["ownerId", "startedAt"]),
 
   conversations: defineTable({
     ownerId: v.id("users"),
