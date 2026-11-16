@@ -1,5 +1,6 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PressableScale } from '@/components/pressable-scale';
 import { ContactAvatar } from '@/components/contacts/contact-avatar';
 import type { ContactsOverview } from '@/components/contacts/data';
 import { firstName } from '@/components/format';
@@ -19,12 +20,12 @@ export function FocusRow({
       <SectionLabel style={styles.label}>Right now</SectionLabel>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {people.slice(0, 5).map(({ contact: p, reason }) => (
-          <Pressable
+          <PressableScale
             key={p.id}
             accessibilityRole="button"
             accessibilityLabel={`${p.name}, ${reason}`}
             onPress={() => onOpen(p.id)}
-            style={({ pressed }) => [styles.item, pressed && { opacity: 0.7 }]}>
+            style={styles.item}>
             <ContactAvatar name={p.name} photoUrl={p.photoUrl} avatarKey={p.avatarKey} size={56} />
             <Text style={styles.name} numberOfLines={1}>
               {firstName(p.name)}
@@ -32,7 +33,7 @@ export function FocusRow({
             <Text style={styles.reason} numberOfLines={2}>
               {reason}
             </Text>
-          </Pressable>
+          </PressableScale>
         ))}
       </ScrollView>
     </View>

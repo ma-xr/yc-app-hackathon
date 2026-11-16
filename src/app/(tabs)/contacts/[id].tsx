@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useContact, useContactHistory, type ConversationRecord } from '@/components/contacts/data';
@@ -9,6 +9,8 @@ import { monthKey } from '@/components/contacts/profile/format';
 import { HistoryEntry, MonthHeader } from '@/components/contacts/profile/history-entry';
 import { ProfileHeader } from '@/components/contacts/profile/profile-header';
 import { Icon } from '@/components/icon';
+import { SkeletonCard } from '@/components/motion';
+import { IconButton, PressableScale } from '@/components/pressable-scale';
 import { useNow } from '@/data/hooks';
 import { C, F, S, T } from '@/theme/tokens';
 
@@ -35,24 +37,23 @@ export default function ContactScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.topBar}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          hitSlop={8}
-          onPress={goBack}
-          style={styles.back}>
+        <IconButton accessibilityLabel="Back" onPress={goBack}>
           <Icon name="chevronLeft" color={C.ink} />
-        </Pressable>
+        </IconButton>
       </View>
       {data === undefined ? (
-        <ActivityIndicator color={C.accent} style={{ marginTop: 40 }} />
+        <View style={styles.loading}>
+          <SkeletonCard lines={1} />
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={3} />
+        </View>
       ) : data === null ? (
         <View style={styles.missing}>
           <Text style={styles.missingTitle}>Contact not found</Text>
           <Text style={styles.empty}>They may have been removed.</Text>
-          <Pressable accessibilityRole="button" onPress={goBack} hitSlop={8} style={styles.missingBack}>
+          <PressableScale accessibilityRole="button" onPress={goBack} hitSlop={8} style={styles.missingBack}>
             <Text style={styles.missingBackText}>Back to contacts</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       ) : (
         <SectionList
@@ -90,7 +91,7 @@ export default function ContactScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
   topBar: { height: S.touch, justifyContent: 'center', paddingHorizontal: S.screenX - 10 },
-  back: { width: S.touch, height: S.touch, alignItems: 'center', justifyContent: 'center' },
+  loading: { paddingHorizontal: S.screenX, paddingTop: 16, gap: 12 },
   content: { paddingBottom: S.tabBar + 32 },
   historyTitle: { ...T.appName, marginTop: 40, marginBottom: 4, paddingHorizontal: S.screenX },
   missing: { alignItems: 'center', paddingTop: 80, paddingHorizontal: S.screenX, gap: 6 },
