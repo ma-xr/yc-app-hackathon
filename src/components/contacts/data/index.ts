@@ -107,7 +107,7 @@ type Moment = Detail['conversations'][number];
 
 function summary(r: Row): ContactSummary {
   const relationship = r.relationship ?? 'other';
-  const roleLabel = r.roleLabel ?? ROLE[relationship];
+  const roleLabel = r.roleLabel ?? r.relationshipSummary?.split(' · ')[0] ?? ROLE[relationship];
   return {
     id: r._id,
     name: r.name,
@@ -205,7 +205,7 @@ export function useContacts(sort: ContactSort): ContactSummary[] | undefined {
     const value = SORT_VALUE[sort];
     const list = FIXTURE ? [...CONTACTS.values()].map((c) => c.profile) : rows?.map(summary);
     if (!list) return undefined;
-    return FIXTURE || sort === 'encounters' ? [...list].sort((a, b) => value(b) - value(a) || a.name.localeCompare(b.name)) : list;
+    return [...list].sort((a, b) => value(b) - value(a) || a.name.localeCompare(b.name));
   }, [rows, sort]);
 }
 
