@@ -90,6 +90,13 @@ export const remove = mutation({
     for (const followup of followups) {
       await ctx.db.delete("followups", followup._id);
     }
+    const interactions = await ctx.db
+      .query("interactions")
+      .withIndex("by_personId_and_startedAt", (q) => q.eq("personId", personId))
+      .take(1000);
+    for (const interaction of interactions) {
+      await ctx.db.delete("interactions", interaction._id);
+    }
     await ctx.db.delete("people", personId);
     return null;
   },

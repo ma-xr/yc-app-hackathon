@@ -1,5 +1,6 @@
 import type { Id } from "./_generated/dataModel";
 import { mutation, type MutationCtx } from "./_generated/server";
+import { seedContacts } from "./contactsSeed";
 import { requireUser } from "./lib/auth";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -17,6 +18,7 @@ async function clearOwner(ctx: MutationCtx, ownerId: Id<"users">) {
     ctx.db.query("reflections").withIndex("by_ownerId_and_date", (q) => q.eq("ownerId", ownerId)).take(1000),
     ctx.db.query("conversations").withIndex("by_ownerId_and_startedAt", (q) => q.eq("ownerId", ownerId)).take(1000),
     ctx.db.query("topics").withIndex("by_ownerId", (q) => q.eq("ownerId", ownerId)).take(1000),
+    ctx.db.query("interactions").withIndex("by_ownerId_and_startedAt", (q) => q.eq("ownerId", ownerId)).take(1000),
     ctx.db.query("people").withIndex("by_ownerId", (q) => q.eq("ownerId", ownerId)).take(1000),
   ]);
   for (const rows of batches) {
@@ -231,6 +233,7 @@ export const demo = mutation({
       messages: [{ role: "jesse", text: question }],
     });
 
+    await seedContacts(ctx, ownerId);
     return null;
   },
 });

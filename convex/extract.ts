@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
+import { extractContactDetails } from "./contactsExtract";
 
 const OPENAI = "https://api.openai.com/v1";
 const TRANSCRIBE_MODEL = "gpt-4o-transcribe-diarize";
@@ -234,9 +235,26 @@ export const processChunk = action({
       if (transcript.length === 0) return null;
       const context = await ctx.runQuery(internal.conversations.extractionContext, { conversationId });
       if (context === null) return null;
-      const extraction = await extractNotes(transcript, context, apiKey);
+      const [extraction, contacts] = await Promise.all([
+        extractNotes(transcript, context, apiKey),
+        extractContactDetails(
+          transcript,
+          { people: context.people.map((p) => p.name), participants: context.participants },
+          apiKey,
+        ).catch((error: unknown) => {
+          console.error("Contact extraction failed:", error instanceof Error ? error.message.slice(0, 120) : "unknown");
+          return null;
+        }),
+      ]);
       const planIds = await ctx.runMutation(internal.conversations.applyExtraction, { conversationId, extraction });
       applied = true;
+      if (contacts !== null && contacts.length > 0) {
+        try {
+          await ctx.runMutation(internal.contactsExtract.applyContactExtraction, { conversationId, people: contacts });
+        } catch (error) {
+          console.error("Applying contact details failed:", error instanceof Error ? error.message.slice(0, 120) : "unknown");
+        }
+      }
       for (const itemId of planIds) {
         await ctx.scheduler.runAfter(0, internal.followups.planForItem, { itemId });
       }

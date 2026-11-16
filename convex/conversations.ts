@@ -3,6 +3,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { deleteItem } from "./items";
 import { requireOwned, requireUser } from "./lib/auth";
+import { replaceInteraction } from "./lib/contactStats";
 import { itemKind } from "./schema";
 
 const MAX_ITEMS_PER_CONVERSATION = 5;
@@ -80,10 +81,19 @@ export const stop = mutation({
     const ownerId = await requireUser(ctx);
     const conversation = await requireOwned(ctx, "conversations", conversationId, ownerId);
     if (conversation.status !== "listening") return null;
+    const endedAt = Date.now();
     await ctx.db.patch("conversations", conversationId, {
-      endedAt: Date.now(),
+      endedAt,
       status: (conversation.pendingChunks ?? 0) > 0 ? "processing" : "done",
     });
+    const minutes = Math.round((endedAt - conversation.startedAt) / 60000);
+    const interactions = await ctx.db
+      .query("interactions")
+      .withIndex("by_conversationId", (q) => q.eq("conversationId", conversationId))
+      .take(50);
+    for (const interaction of interactions) {
+      await replaceInteraction(ctx, interaction, { minutes });
+    }
     return null;
   },
 });
