@@ -44,10 +44,10 @@ export function RouteCard({ labels, reached, title }: { labels: string[]; reache
                 key={label + i}
                 style={[
                   styles.pin,
-                  { left: Math.min(Math.max(points[i].x - 44, -6), w - 82), top: points[i].y - 36 },
+                  { left: Math.min(Math.max(points[i].x - 50, -6), w - 94), top: points[i].y - 36 },
                   i === reached && { backgroundColor: C.accent },
                 ]}>
-                <Text numberOfLines={1} style={[styles.pinText, i === reached && { color: C.onAccent }]}>
+                <Text style={[styles.pinText, i === reached && { color: C.onAccent }]}>
                   {label}
                 </Text>
               </View>
@@ -62,12 +62,12 @@ const styles = StyleSheet.create({
   card: { backgroundColor: C.surface, borderRadius: S.cardRadius, padding: 16, gap: 4, ...shadow },
   pin: {
     position: 'absolute',
-    width: 88,
+    width: 100,
     alignItems: 'center',
     borderRadius: 999,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     backgroundColor: C.bg,
   },
-  pinText: { fontFamily: F.semibold, fontSize: 12, color: C.ink },
+  pinText: { fontFamily: F.semibold, fontSize: 12, color: C.ink, textAlign: 'center' },
 });
