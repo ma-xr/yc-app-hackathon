@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, type Insets, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, type Insets, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { haptic, PRESS_SCALE, SPRING, type HapticKind } from '@/theme/motion';
@@ -27,8 +27,9 @@ export function PressableScale({
 }: PressableScaleProps) {
   const reduced = useReducedMotion();
   const pressed = useSharedValue(0);
+  const baseOpacity = StyleSheet.flatten(style)?.opacity ?? 1;
   const animated = useAnimatedStyle(() => ({
-    opacity: reduced ? 1 - pressed.value * 0.25 : 1,
+    opacity: baseOpacity * (reduced ? 1 - pressed.value * 0.25 : 1),
     transform: [{ scale: reduced ? 1 : 1 - pressed.value * (1 - scaleTo) }],
   }));
   return (
