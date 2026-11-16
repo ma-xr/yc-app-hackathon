@@ -1,5 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useMutation } from 'convex/react';
+import { useCallback, useMemo, useState } from 'react';
 
+import { api } from '../../../convex/_generated/api';
 import { demoSource } from './demo';
 
 export type SyncContact = {
@@ -17,6 +19,7 @@ export type SyncResult = { added: number; updated: number; total: number };
 export type ContactsClient = {
   sync: (args: { source: 'apple' | 'demo'; contacts: SyncContact[] }) => Promise<SyncResult>;
   generatePhotoUploadUrl: () => Promise<string>;
+  loadDemo: () => Promise<unknown>;
 };
 
 export interface ContactsSource {
@@ -27,14 +30,22 @@ export interface ContactsSource {
 
 export const contactsSource: ContactsSource = demoSource;
 
-const localClient: ContactsClient = {
-  sync: async ({ contacts }) => ({ added: 0, updated: contacts.length, total: contacts.length }),
-  generatePhotoUploadUrl: async () => {
-    throw new Error('Photo upload needs the contacts backend');
-  },
-};
+const NOT_YET = 'Contact sync needs a contacts.sync mutation on the backend';
 
-export function useContactsSync(client: ContactsClient = localClient) {
+export function useContactsSync() {
+  const loadDemo = useMutation(api.seed.demo);
+  const client = useMemo<ContactsClient>(
+    () => ({
+      sync: async () => {
+        throw new Error(NOT_YET);
+      },
+      generatePhotoUploadUrl: async () => {
+        throw new Error(NOT_YET);
+      },
+      loadDemo: () => loadDemo({}),
+    }),
+    [loadDemo],
+  );
   const [syncing, setSyncing] = useState(false);
 
   const sync = useCallback(async () => {

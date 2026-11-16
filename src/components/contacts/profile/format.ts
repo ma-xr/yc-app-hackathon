@@ -47,17 +47,6 @@ export function clockTime(ms: number) {
   return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
-export function relativeAgo(ms: number, now = Date.now()) {
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const days = Math.max(0, Math.ceil((start.getTime() - ms) / DAY));
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 14) return `${days}d ago`;
-  if (days < 60) return `${Math.round(days / 7)}w ago`;
-  if (days < 365) return `${Math.round(days / 30)}mo ago`;
-  return `${Math.round(days / 365)}y ago`;
-}
 
 export function hours(minutes: number) {
   const h = minutes / 60;

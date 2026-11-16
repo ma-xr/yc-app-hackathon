@@ -2,7 +2,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { ContactAvatar } from '@/components/contacts/contact-avatar';
 import type { ContactProfile } from '@/components/contacts/data';
-import { hours, monthYear, relativeAgo } from '@/components/contacts/profile/format';
+import { ago } from '@/components/contacts/list/sort';
+import { hours, monthYear } from '@/components/contacts/profile/format';
 import { C, F, S, T } from '@/theme/tokens';
 
 export function ProfileHeader({ data, now }: { data: ContactProfile; now: number }) {
@@ -11,7 +12,7 @@ export function ProfileHeader({ data, now }: { data: ContactProfile; now: number
     .join(' · ');
 
   const stats = [
-    data.lastInteractionAt ? { label: 'Last seen', value: relativeAgo(data.lastInteractionAt, now) } : null,
+    data.lastInteractionAt ? { label: 'Last seen', value: ago(data.lastInteractionAt, now) } : null,
     data.totalMinutes ? { label: 'Together', value: hours(data.totalMinutes) } : null,
     data.encounterCount ? { label: 'Encounters', value: String(data.encounterCount) } : null,
     data.distinctTopicCount ? { label: 'Topics', value: String(data.distinctTopicCount) } : null,
