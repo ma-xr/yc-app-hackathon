@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 
 import { Orb, OrbArt } from '@/components/orb';
@@ -80,7 +80,7 @@ function Swatch({
               ? {
                   backgroundColor: C.surface,
                   borderWidth: 1,
-                  borderColor: C.chipBorder,
+                  borderColor: C.muted,
                   borderStyle: 'dashed',
                 }
               : { backgroundColor: color },
@@ -121,7 +121,9 @@ function Tile({
       <Animated.View style={art}>
         <OrbArt size={52} look={look} />
       </Animated.View>
-      <Text style={[styles.tileLabel, selected && { color: C.ink }]}>{label}</Text>
+      <Text style={[styles.tileLabel, selected && { color: C.ink }]} numberOfLines={1}>
+        {label}
+      </Text>
     </PressableScale>
   );
 }
@@ -129,6 +131,9 @@ function Tile({
 export default function YourJesse() {
   const look = useLook();
   const [hop, setHop] = useState(0);
+  // On short screens (and the web demo frame) a smaller preview leaves room for the options.
+  const { height } = useWindowDimensions();
+  const previewSize = height < 800 ? 130 : 170;
   const set = (patch: Partial<Look>) => {
     saveLook({ ...look, ...patch });
     setHop((n) => n + 1);
@@ -149,7 +154,7 @@ export default function YourJesse() {
       </Text>
 
       <View style={styles.preview}>
-        <Orb listening={false} onPress={() => setHop((n) => n + 1)} cheer={hop} size={170} look={look} />
+        <Orb listening={false} onPress={() => setHop((n) => n + 1)} cheer={hop} size={previewSize} look={look} />
       </View>
       <ScrollView contentContainerStyle={styles.options} showsVerticalScrollIndicator={false}>
         <Section title="Fur" index={0}>
@@ -252,8 +257,9 @@ const styles = StyleSheet.create({
   preview: { alignItems: 'center', marginVertical: -26 },
   options: { gap: S.gap, paddingBottom: 40 },
   section: { gap: 10 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  swatchWrap: { alignItems: 'center', gap: 4, width: 50, minHeight: S.touch },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  // 48 wide so six swatches fit one row on a 375pt phone.
+  swatchWrap: { alignItems: 'center', gap: 4, width: 48, minHeight: S.touch },
   swatchRing: { padding: 5 },
   ringOn: {
     position: 'absolute',
@@ -270,22 +276,23 @@ const styles = StyleSheet.create({
   tile: {
     alignItems: 'center',
     gap: 2,
-    width: 63,
-    paddingVertical: 8,
+    // Five tiles fit one row on a 375pt phone and in the 430pt web frame.
+    flexGrow: 1,
+    flexBasis: 56,
+    maxWidth: 72,
+    paddingVertical: 10,
     borderRadius: S.cardRadius - 8,
     backgroundColor: C.surface,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
   tileOn: {
     position: 'absolute',
-    top: -2,
-    left: -2,
-    right: -2,
-    bottom: -2,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderRadius: S.cardRadius - 8,
     borderWidth: 2,
     borderColor: C.accent,
   },
-  tileLabel: { fontFamily: F.semibold, fontSize: 11, color: C.muted },
+  tileLabel: { fontFamily: F.semibold, fontSize: 10, letterSpacing: -0.1, color: C.muted },
 });

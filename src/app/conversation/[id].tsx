@@ -8,12 +8,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc, Id } from '../../../convex/_generated/dataModel';
+import { ContactAvatar } from '@/components/contacts/contact-avatar';
+import { avatarKeyFor } from '@/components/contacts/data';
 import { conversationTitle } from '@/components/conversation-card';
 import { firstName, time, weekdayDate } from '@/components/format';
 import { Icon } from '@/components/icon';
 import { Enter, Skeleton, SkeletonCard } from '@/components/motion';
 import { IconButton, PressableScale } from '@/components/pressable-scale';
-import { Avatar, Button, Card, Divider, EmptyCard, SectionLabel } from '@/components/ui';
+import { Button, Card, Divider, EmptyCard, SectionLabel } from '@/components/ui';
 import { useItemActions } from '@/data/hooks';
 import { fadeIn, fadeOut, layout } from '@/theme/motion';
 import { C, F, S, T } from '@/theme/tokens';
@@ -165,7 +167,7 @@ export default function ConversationScreen() {
                 scaleTo={0.98}
                 onPress={() => router.push({ pathname: '/person/[id]', params: { id: p._id } })}
                 style={styles.person}>
-                <Avatar name={p.name} size={32} />
+                <ContactAvatar name={p.name} avatarKey={avatarKeyFor(p.name, p.avatarKey)} size={32} />
                 <Text style={styles.personName}>{p.name}</Text>
                 <Icon name="chevronRight" size={16} color={C.muted} />
               </PressableScale>

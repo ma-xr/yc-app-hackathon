@@ -8,6 +8,8 @@ import { C, F, S, shadow, T } from '@/theme/tokens';
 
 const H = 170;
 const LEVELS = [0.82, 0.42, 0.66, 0.3, 0.55, 0.22];
+const PIN_W = 88;
+const PIN_H = 22;
 
 export function RouteCard({ labels, reached, title }: { labels: string[]; reached: number; title: string }) {
   const [w, setW] = useState(0);
@@ -45,7 +47,12 @@ export function RouteCard({ labels, reached, title }: { labels: string[]; reache
                 key={label + i}
                 style={[
                   styles.pin,
-                  { left: Math.min(Math.max(points[i].x - 50, -6), w - 94), top: points[i].y - 36 },
+                  {
+                    left: Math.min(Math.max(points[i].x - PIN_W / 2, -6), w - PIN_W + 6),
+                    // Stops alternate high/low, so put each label on the open side of its dot:
+                    // above the high ones, below the low ones. Neighbouring labels then never collide.
+                    top: LEVELS[i % LEVELS.length] < 0.5 ? points[i].y - PIN_H - 12 : points[i].y + 12,
+                  },
                   i === reached && { backgroundColor: C.accent },
                 ]}>
                 <Text style={[styles.pinText, i === reached && { color: C.onAccent }]} numberOfLines={1}>
@@ -64,11 +71,12 @@ const styles = StyleSheet.create({
   card: { backgroundColor: C.surface, borderRadius: S.cardRadius, padding: 16, gap: 4, ...shadow },
   pin: {
     position: 'absolute',
-    width: 100,
+    width: PIN_W,
+    height: PIN_H,
+    justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 4,
     backgroundColor: C.bg,
   },
   pinText: { fontFamily: F.semibold, fontSize: 12, color: C.ink, textAlign: 'center' },

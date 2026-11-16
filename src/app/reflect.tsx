@@ -25,8 +25,7 @@ import {
 import { OrbArt } from '@/components/orb';
 import { PlaceInsights } from '@/components/place-insights';
 import { speak, stopSpeaking, useIsSpeaking, useVoiceInput } from '@/lib/voice';
-import { C, F } from '@/theme/tokens';
-
+import { C, F, S } from '@/theme/tokens';
 
 const HEADING = F.display;
 
@@ -143,11 +142,13 @@ export default function ReflectScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
           <View style={styles.orb} accessibilityElementsHidden>
-            <OrbArt size={48} pose={speakingNow ? 'talk' : 'idle'} />
+            <OrbArt size={42} pose={speakingNow ? 'talk' : 'idle'} />
           </View>
           <View style={styles.flex}>
             <Text style={styles.name}>Jesse</Text>
-            <Text style={styles.meta}>Tonight · {today}</Text>
+            <Text style={styles.meta} numberOfLines={1}>
+              Tonight · {today}
+            </Text>
           </View>
           <Pressable
             accessibilityRole="switch"
@@ -252,6 +253,8 @@ export default function ReflectScreen() {
             placeholder={voice.recording ? 'Listening… tap the mic when you’re done' : 'Tell Jesse what you think'}
             placeholderTextColor={C.muted}
             multiline
+            // Web renders a 2-row textarea by default, taller than the buttons beside it.
+            numberOfLines={Platform.OS === 'web' ? 1 : undefined}
             editable={!voice.recording}
             accessibilityLabel="Your reply to Jesse"
           />
@@ -280,17 +283,17 @@ export default function ReflectScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
-  orb: { width: 48, height: 48 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: S.screenX, paddingTop: S.screenTop, paddingBottom: 12 },
+  orb: { width: 42, height: 42 },
   name: { fontFamily: HEADING, fontSize: 26, color: C.ink },
-  meta: { fontSize: 13, fontWeight: '500', color: C.muted, marginTop: 2 },
+  meta: { fontFamily: F.medium, fontSize: 12, color: C.muted, marginTop: 2 },
   close: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  closeText: { fontSize: 15, fontWeight: '700', color: C.accent },
+  closeText: { fontFamily: F.bold, fontSize: 15, color: C.accent },
   content: { paddingHorizontal: 20, paddingBottom: 24, gap: 14 },
   questionCard: { backgroundColor: C.night, borderRadius: 20, padding: 20, gap: 10 },
-  questionLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.72, color: C.darkCardMuted },
-  question: { fontFamily: HEADING, fontSize: 20, lineHeight: 26, fontWeight: '700', color: C.onNight },
-  questionHint: { fontSize: 13, color: C.darkCardMuted },
+  questionLabel: { fontFamily: F.semibold, fontSize: 12, letterSpacing: 0.72, color: C.darkCardMuted },
+  question: { fontFamily: HEADING, fontSize: 20, lineHeight: 26, color: C.onNight },
+  questionHint: { fontFamily: F.regular, fontSize: 13, color: C.darkCardMuted },
   bubble: { maxWidth: '86%', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 12 },
   jesseBubble: {
     alignSelf: 'flex-start',
@@ -299,14 +302,14 @@ const styles = StyleSheet.create({
     boxShadow: '0 1px 2px rgba(27,24,48,0.06)',
   },
   userBubble: { alignSelf: 'flex-end', backgroundColor: C.accentTint, borderBottomRightRadius: 6 },
-  jesseText: { fontSize: 15, lineHeight: 21, color: C.inkSoft },
-  userText: { fontSize: 15, lineHeight: 21, color: C.accentDeep },
-  thinking: { fontSize: 14, color: C.muted, fontStyle: 'italic' },
+  jesseText: { fontFamily: F.regular, fontSize: 15, lineHeight: 21, color: C.inkSoft },
+  userText: { fontFamily: F.regular, fontSize: 15, lineHeight: 21, color: C.accentDeep },
+  thinking: { fontFamily: F.regular, fontSize: 14, color: C.muted, fontStyle: 'italic' },
   keepCard: { backgroundColor: C.accentWash, borderRadius: 18, padding: 16, gap: 8 },
-  sectionLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.72, color: C.muted },
-  keepText: { fontSize: 15, lineHeight: 21, color: C.ink },
-  keepNote: { fontSize: 12, color: C.muted },
-  error: { fontSize: 14, color: '#7A3E06', backgroundColor: '#FCEBD3', borderRadius: 12, padding: 12 },
+  sectionLabel: { fontFamily: F.semibold, fontSize: 12, letterSpacing: 0.72, color: C.muted },
+  keepText: { fontFamily: F.regular, fontSize: 15, lineHeight: 21, color: C.ink },
+  keepNote: { fontFamily: F.regular, fontSize: 12, color: C.muted },
+  error: { fontFamily: F.medium, fontSize: 14, color: '#7A3E06', backgroundColor: '#FCEBD3', borderRadius: 12, padding: 12 },
   checkInCard: {
     backgroundColor: C.surface,
     borderRadius: 18,
@@ -314,7 +317,7 @@ const styles = StyleSheet.create({
     gap: 10,
     boxShadow: '0 1px 2px rgba(27,24,48,0.06)',
   },
-  checkInText: { fontSize: 14, lineHeight: 20, color: C.inkSoft },
+  checkInText: { fontFamily: F.regular, fontSize: 14, lineHeight: 20, color: C.inkSoft },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     minHeight: 44,
@@ -326,7 +329,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.surface,
   },
   chipOn: { backgroundColor: C.accentTint, borderColor: C.accentTint },
-  chipText: { fontSize: 12, fontWeight: '700', color: C.inkSoft },
+  chipText: { fontFamily: F.bold, fontSize: 12, color: C.inkSoft },
   chipTextOn: { color: C.accentDeep },
   composer: {
     flexDirection: 'row',
@@ -334,7 +337,8 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 12,
+    // Web: keep the composer clear of the phone frame's rounded bottom corners.
+    paddingBottom: Platform.OS === 'web' ? 22 : 12,
     borderTopWidth: 1,
     borderTopColor: C.line,
     backgroundColor: C.bg,
@@ -350,14 +354,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 12,
+    fontFamily: F.regular,
     fontSize: 15,
     color: C.ink,
   },
   roundButton: { minWidth: 44, height: 44, borderRadius: 22, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
-  talkText: { fontSize: 13, fontWeight: '700', color: C.surface },
+  talkText: { fontFamily: F.bold, fontSize: 13, color: C.surface },
   micOff: { backgroundColor: C.accentTint },
   micOn: { backgroundColor: '#B5650F' },
   send: { backgroundColor: C.accent },
   disabled: { opacity: 0.4 },
-  roundIcon: { fontSize: 18, fontWeight: '700', color: C.surface },
+  roundIcon: { fontFamily: F.bold, fontSize: 18, color: C.surface },
 });

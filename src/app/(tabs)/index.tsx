@@ -37,6 +37,10 @@ type Ask = (args: {
 const MAX_HISTORY = 12;
 const ORB = 200;
 const BADGE = 34;
+// Room the reply text needs under the orb before the orb starts shrinking to make space.
+const TEXT_ROOM = 120;
+const TEXT_ROOM_EXCHANGE = 170;
+const MIN_SCALE = 0.45;
 
 function useKeyboardVisible() {
   const [visible, setVisible] = useState(false);
@@ -119,6 +123,7 @@ export default function Talk() {
   const greetedOn = useRef<string | null>(null);
   const todayKey = localDate(new Date(now));
   const keyboardUp = useKeyboardVisible();
+  const [middleH, setMiddleH] = useState(0);
 
   useEffect(() => {
     void Promise.all([getPref(PREF.username), getPref(PREF.voiceMuted)]).then(([name, mute]) => {
@@ -221,9 +226,13 @@ export default function Talk() {
   const captureOn = capturePaused || capture.state === 'listening';
   const compact = typing && keyboardUp;
   const reply = exchange ? exchange.jesse : greeting;
+  const wanted = compact ? 0.5 : exchange || typing ? 0.75 : 1;
+  // Short screens (small phones, the web demo frame): shrink the orb so the reply always has room.
+  const fits = middleH > 0 ? (middleH - (exchange ? TEXT_ROOM_EXCHANGE : TEXT_ROOM) - 28) / ORB : wanted;
+  const orbScale = Math.max(MIN_SCALE, Math.min(wanted, fits));
 
   return (
-    <Screen scroll={false} keyboard>
+    <Screen scroll={false} keyboard contentStyle={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.date} numberOfLines={1}>
           {weekdayDate(now)}
@@ -243,9 +252,9 @@ export default function Talk() {
         </View>
       </View>
 
-      <View style={styles.middle}>
+      <View style={styles.middle} onLayout={(e) => setMiddleH(Math.round(e.nativeEvent.layout.height))}>
         <OrbSlot
-          scale={compact ? 0.5 : exchange || typing ? 0.75 : 1}
+          scale={orbScale}
           orb={<Orb listening={recording} onPress={() => void talk()} cheer={cheer} size={ORB} />}
           badge={
             <PressableScale
@@ -364,6 +373,8 @@ export default function Talk() {
 }
 
 const styles = StyleSheet.create({
+  // The tab bar sits right below; the default 32pt bottom padding wastes space on short screens.
+  screen: { paddingBottom: 12 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

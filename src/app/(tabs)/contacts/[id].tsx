@@ -92,7 +92,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
   topBar: { height: S.touch, justifyContent: 'center', paddingHorizontal: S.screenX - 10 },
   loading: { paddingHorizontal: S.screenX, paddingTop: 16, gap: 12 },
-  content: { paddingBottom: S.tabBar + 32 },
+  // The tab bar sits below the screen (not over it), so no extra inset is needed.
+  content: { paddingBottom: 40 },
   historyTitle: { ...T.appName, marginTop: 40, marginBottom: 4, paddingHorizontal: S.screenX },
   missing: { alignItems: 'center', paddingTop: 80, paddingHorizontal: S.screenX, gap: 6 },
   missingTitle: { ...T.appName, textAlign: 'center' },

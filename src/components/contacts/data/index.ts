@@ -98,6 +98,11 @@ const SORT_VALUE: Record<ContactSort, (c: ContactSummary) => number> = {
 
 const FIXTURE = __DEV__ && process.env.EXPO_PUBLIC_CONTACTS_FIXTURE === '1';
 const AVATAR_BY_NAME = new Map(MOCK_CONTACTS.filter((c) => c.avatarKey).map((c) => [c.name.toLowerCase(), c.avatarKey!]));
+
+/** The bundled portrait for a person, so every screen shows the same face the Contacts tab does. */
+export function avatarKeyFor(name: string, avatarKey?: string) {
+  return avatarKey ?? AVATAR_BY_NAME.get(name.toLowerCase());
+}
 const ROLE: Record<Relationship, string> = { work: 'Work', friend: 'Friend', family: 'Family', other: 'Contact' };
 const API_SORT = { recent: 'recent', time: 'time', deepest: 'deepest', encounters: 'recent', fun: 'fun', compatible: 'compatibility', deepTalk: 'deepTalk' } as const;
 

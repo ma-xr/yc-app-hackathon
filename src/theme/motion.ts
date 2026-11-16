@@ -20,7 +20,14 @@ export const PRESS_SCALE = 0.96;
 export const STAGGER_MS = 45;
 export const MAX_STAGGER = 8;
 
-export const enter = (index = 0) =>
+// On web, reanimated's entering animations hide an element (visibility:hidden) until a CSS
+// animation starts, and custom presets get pinned with position:absolute when they end. Both
+// break the public web demo (invisible text, overlaps), so web renders content without them.
+const WEB = Platform.OS === 'web';
+
+export const enter = (index = 0) => (WEB ? undefined : enterNative(index));
+
+const enterNative = (index: number) =>
   FadeInDown.springify()
     .damping(SPRING.gentle.damping)
     .stiffness(SPRING.gentle.stiffness)
@@ -29,8 +36,8 @@ export const enter = (index = 0) =>
     .delay(Math.min(index, MAX_STAGGER) * STAGGER_MS)
     .reduceMotion(ReduceMotion.System);
 
-export const fadeIn = FadeIn.duration(220).reduceMotion(ReduceMotion.System);
-export const fadeOut = FadeOut.duration(160).reduceMotion(ReduceMotion.System);
+export const fadeIn = WEB ? undefined : FadeIn.duration(220).reduceMotion(ReduceMotion.System);
+export const fadeOut = WEB ? undefined : FadeOut.duration(160).reduceMotion(ReduceMotion.System);
 
 export const layout =
   Platform.OS === 'web'

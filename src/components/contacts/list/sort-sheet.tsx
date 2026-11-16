@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
@@ -36,47 +36,73 @@ export function SortSheet({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  // On a wide browser window the app sits in a centered phone frame (web-frame.tsx), but a
+  // Modal portals to the whole page. Keep the sheet inside the same phone-sized box.
+  const framed = Platform.OS === 'web' && width > PHONE_W + 40;
+  const frameStyle = framed
+    ? {
+        width: PHONE_W,
+        height: Math.min(PHONE_H, height - 48),
+        alignSelf: 'center' as const,
+        borderRadius: 44,
+        overflow: 'hidden' as const,
+        justifyContent: 'flex-end' as const,
+      }
+    : null;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.root}>
-        <Pressable style={styles.backdrop} accessibilityRole="button" accessibilityLabel="Close sort" onPress={onClose} />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
-          <View style={styles.grabber} />
-          {SORT_GROUPS.map((group) => (
-            <View key={group.title} style={styles.group}>
-              <SectionLabel style={styles.groupLabel}>{group.title}</SectionLabel>
-              {group.options.map((o) => {
-                const selected = o.key === sort;
-                return (
-                  <PressableScale
-                    key={o.key}
-                    haptic="selection"
-                    scaleTo={0.98}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected }}
-                    accessibilityLabel={`${o.label}. ${o.description}`}
-                    onPress={() => {
-                      onSelect(o.key);
-                      onClose();
-                    }}
-                    style={styles.option}>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={[styles.optionLabel, selected && { color: C.accent }]}>{o.label}</Text>
-                      <Text style={[T.meta, { fontFamily: F.regular }]}>{o.description}</Text>
-                    </View>
-                    {selected ? <Icon name="check" size={18} color={C.accent} strokeWidth={2.2} /> : null}
-                  </PressableScale>
-                );
-              })}
-            </View>
-          ))}
+      <View style={[styles.root, framed && styles.framedPage]}>
+        <View style={frameStyle ?? styles.root}>
+          <Pressable
+            style={styles.backdrop}
+            accessibilityRole="button"
+            accessibilityLabel="Close sort"
+            onPress={onClose}
+          />
+          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
+            <View style={styles.grabber} />
+            {SORT_GROUPS.map((group) => (
+              <View key={group.title} style={styles.group}>
+                <SectionLabel style={styles.groupLabel}>{group.title}</SectionLabel>
+                {group.options.map((o) => {
+                  const selected = o.key === sort;
+                  return (
+                    <PressableScale
+                      key={o.key}
+                      haptic="selection"
+                      scaleTo={0.98}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={`${o.label}. ${o.description}`}
+                      onPress={() => {
+                        onSelect(o.key);
+                        onClose();
+                      }}
+                      style={styles.option}>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={[styles.optionLabel, selected && { color: C.accent }]}>{o.label}</Text>
+                        <Text style={[T.meta, { fontFamily: F.regular }]}>{o.description}</Text>
+                      </View>
+                      {selected ? <Icon name="check" size={18} color={C.accent} strokeWidth={2.2} /> : null}
+                    </PressableScale>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     </Modal>
   );
 }
 
+// Mirrors the phone frame in web-frame.tsx.
+const PHONE_W = 430;
+const PHONE_H = 932;
+
 const styles = StyleSheet.create({
+  framedPage: { justifyContent: 'center' },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -98,7 +124,14 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     gap: 8,
   },
-  grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: C.line, marginBottom: 6 },
+  grabber: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: C.line,
+    marginBottom: 6,
+  },
   group: { gap: 2 },
   groupLabel: { paddingHorizontal: S.screenX, paddingTop: 8, paddingBottom: 4 },
   option: {

@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from 'convex/react';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Icon } from '@/components/icon';
@@ -33,11 +33,16 @@ function CodeBlock({ title, text }: { title: string; text: string }) {
   return (
     <Card style={{ gap: 10 }}>
       <Text style={T.cardTitle}>{title}</Text>
-      <View style={styles.code}>
+      {/* Scroll long lines sideways instead of wrapping them mid-URL and breaking the indentation. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.code}
+        contentContainerStyle={styles.codeContent}>
         <Text selectable style={styles.codeText}>
           {text}
         </Text>
-      </View>
+      </ScrollView>
       <Button
         label={copied ? 'Copied' : 'Copy or share'}
         icon={copied ? 'check' : undefined}
@@ -234,8 +239,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   boxOn: { backgroundColor: C.accent, borderColor: C.accent },
-  code: { backgroundColor: C.bg, borderRadius: 12, padding: 12 },
-  codeText: { fontFamily: 'monospace', fontSize: 12, lineHeight: 18, color: C.ink },
+  code: { backgroundColor: C.bg, borderRadius: 12 },
+  codeContent: { padding: 12 },
+  codeText: {
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+    fontSize: 12,
+    lineHeight: 18,
+    color: C.ink,
+  },
   tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

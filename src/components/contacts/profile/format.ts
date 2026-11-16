@@ -48,6 +48,8 @@ export function clockTime(ms: number) {
 
 
 export function hours(minutes: number) {
+  // Under an hour, "0h" reads as "never"; show minutes instead.
+  if (minutes < 60) return `${Math.max(1, Math.round(minutes))}m`;
   const h = minutes / 60;
   if (h < 10) return `${Math.round(h * 10) / 10}h`;
   return `${Math.round(h)}h`;
