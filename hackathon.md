@@ -381,3 +381,11 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 ## Route card labels (YCAP-9)
 
 - Route stop labels on Home no longer truncate: the pins are wider and wrap instead of clipping, so "One thought" shows in full.
+
+## Location, geotagged conversations and places (YCAP-20)
+
+- New `locationPings` table (owner, lat, lng, accuracy, ts, placeName, source) indexed by owner and time, and optional `location` and `placeName` on conversations, so existing rows stay valid.
+- `convex/places.ts`: `record` stores pings and tags a conversation the caller owns, `week` clusters the last 7 days of pings into places within 150 m and adds time spent, visits, people and conversations per place, `insights` writes up to two lines ("You talked to Sam at Blue Bottle Coffee 3 times this week."), `deleteHistory` wipes pings and conversation tags in scheduled batches. Every function reads the owner from the session.
+- `src/lib/location.ts` (expo-location + expo-task-manager): samples every 5 minutes or 150 m of movement while Jesse is open, pins each new conversation where it starts, names spots with on-device reverse geocoding, and in a development build keeps noting places in the background. In Expo Go and on web it stays foreground-only.
+- UI is components only, for the Insights tab: `PlacesSection`, `PlaceInsights` (also shown on Reflect) and `LocationSettings` in Connections (pause, resume, delete history). The conversation page shows where it happened.
+- Verified: 6 convex-test authz tests, tsc, expo lint, and the UI on Expo web against a local Convex backend with seeded places, including delete history. Not verified on a phone.

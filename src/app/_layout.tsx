@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { api } from '../../convex/_generated/api';
 import { SignIn } from '@/components/sign-in';
 import { authStorage, convex } from '@/lib/convex';
+import { useLocationTracking } from '@/lib/location';
 import { useEveningCheckIn } from '@/lib/notifications';
 import { useJesseFonts } from '@/theme/fonts';
 import { C } from '@/theme/tokens';
@@ -51,6 +52,7 @@ export default function RootLayout() {
 
 function SignedInApp() {
   useEveningCheckIn();
+  useLocationTracking();
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
       <Stack.Screen name="(tabs)" />

@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../convex/_generated/api';
 import { Icon } from '@/components/icon';
 import { OrbArt } from '@/components/orb';
+import { LocationSettings } from '@/components/location-settings';
 import { Button, Card, Chip, Divider, EmptyCard, SectionLabel, type Tone } from '@/components/ui';
 import { openComposer } from '@/lib/actions';
 import { importDeviceContacts } from '@/lib/contacts';
@@ -204,6 +205,8 @@ export default function ConnectionsScreen() {
           Sample sources run bundled sample events through the same processing as live ones. Jesse keeps only its own
           short notes, never message or email text.
         </Text>
+
+        <LocationSettings />
 
         <SectionLabel style={{ marginTop: 8 }}>Your Claude</SectionLabel>
         <Card style={{ gap: 8 }}>
