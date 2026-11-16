@@ -2,17 +2,17 @@
 
 - **Project:** Jesse
 - **Event:** YC Consumer Mobile Hackathon
-- **What it does:** A companion app that listens to your conversations with consent and keeps only short, editable notes (promises, plans, facts about people, topics, goals and concerns), never audio or transcripts, then helps you follow up and reflect.
+- **What it does:** Jesse is a capybara friend on your phone: you press to talk with it about your day, it passively notes who you spent time with, where and how it felt (never audio or transcripts), and turns that into a daily score and mood in Insights and rich, auto-filled profiles in Contacts.
 - **Live app:** not deployed
 - **Repo:** https://github.com/ma-xr/yc-app-hackathon
 - **Frontend:** Other (Expo SDK 58 iOS app, run in Expo Go or a Release build; no hosted web frontend)
 - **Convex deployment:** https://colorful-fish-461.convex.cloud
 - **Components:** @convex-dev/auth (core, password and username components)
-- **Convex features:** schema, tables, indexes, realtime queries, mutations, optimistic updates, actions, internal functions, scheduled functions, crons, HTTP actions (Keiki tool endpoint and an MCP server), file storage, typed env
+- **Convex features:** schema, tables, indexes, realtime queries, mutations, optimistic updates, actions, internal functions, scheduled functions, crons (follow-up sweep, evening iMessage nudge, nightly insights), HTTP actions (Keiki tool endpoint and an MCP server), file storage (contact photos), typed env, convex-test suites
 - **Auth:** Convex Auth
-- **AI models:** OpenAI gpt-4o-transcribe-diarize (speech-to-text with speakers), gpt-5-mini (note extraction, follow-up drafts, jesse.ask answers), gpt-4o-mini-transcribe (voice questions), gpt-4o-mini-tts (Jesse's voice); Supermemory API for optional long-term recall; the Keiki iMessage agent runs google/gemini-3.8-flash (configured in Keiki)
+- **AI models:** OpenAI gpt-4o-transcribe-diarize (speech-to-text with speakers for capture segments), gpt-5-mini (extraction, Talk replies, the numbers-only day writer, follow-up drafts), gpt-4o-mini-transcribe (push-to-talk), gpt-4o-mini-tts (Jesse's voice); Supermemory API for optional long-term recall; the Keiki iMessage agent runs google/gemini-3.8-flash (configured in Keiki)
 - **Started:** 2026-11-15T19:16:45Z
-- **Last updated:** 2026-11-15T23:34:33Z
+- **Last updated:** 2026-11-16T02:18:31Z
 
 ## Log
 
@@ -452,6 +452,7 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - Review fixes from #49: Insights follows the clock across midnight (`useNow`) unless you picked another day, person lifts open the contact, and "This is off" no longer claims to save feedback that has no API yet.
 - Verified: tsc and eslint on the Insights files; every view re-rendered on Expo web.
 
+<<<<<<< HEAD
 ## Screen polish pass (YCH-33)
 
 - Talk, Walk, Your Jesse, the tab bar, Settings/Connections, MCP, sign-in and the conversation page now use the shared motion primitives: spring press on every tappable, staggered spring enters for cards and rows, spring layout transitions for replies and sections, skeletons instead of blank flashes, and light haptics on talk, send, save and tab changes.
@@ -460,3 +461,17 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - `<Enter list>` (entering only) for rows in FlatList, SectionList or horizontal lists, and layout transitions are off on web, where they overlapped rows.
 - Verified: tsc and expo lint are clean; Talk, Walk and Your Jesse rendered on Expo web at 393×852. Not yet verified on a phone.
 
+=======
+## Contacts wired to the live API (YCAP-21)
+
+- Contacts calls `contacts.sync` and `generatePhotoUploadUrl` from #53 instead of the placeholder, and prefers `avatarKey` and `photoUrl` from the API over the bundled portrait match. Rows, buttons and loading states use the shared motion primitives (PressableScale, IconButton, skeletons). Insights reuses the Contacts portraits (#54, #55).
+
+## Final app (main at db48268)
+
+- **Talk:** press to talk with Jesse, a capybara friend who knows today's context (who you saw, where, how it felt) and matches your mood. Passive capture runs in the background in 10-minute segments; silent segments are dropped on the device, voiced ones are transcribed and extracted on Convex, and no audio or transcript is stored.
+- **Insights:** "How was your day?" gives a day score and mood, People and Activity sections, and an evidence sheet behind every fact. "Who are you?" shows the identity sentence, what lifts you, interests, goals, personality and your orbit.
+- **Contacts:** a synced-looking list with Recent, Time together, Deepest, Encounters and vibe sorts; rich profiles filled from conversations; the full conversation history with place, time and length. Location tags every conversation.
+- **Convex does all of it:** extraction actions, the days, traits and lifts compute (numbers in code, `convex/lib/dayScores.ts`, `convex/lib/lifts.ts`, `convex/lib/personScores.ts`), an LLM writer that only turns computed numbers into words (`convex/writer.ts`), nightly and periodic crons (`convex/crons.ts`), Convex Auth, and convex-test suites in ten test files (authz, score formulas, lifts, seed numbers, capture, places).
+- **Built with:** Capy, as a crew of parallel agent threads under one Captain, opened and iterated on PRs #4 to #55. Revyl ran the iOS cloud builds and the device checks on a cloud iPhone. Keiki is the iMessage bridge: Jesse answers memory questions and sends due nudges over iMessage through a Convex HTTP tool endpoint.
+- Honest limits: verified with tsc, lint, convex-test and Expo web renders, plus Release builds on a cloud iPhone for earlier rounds. Background capture and the mic were not tested on a physical phone (the cloud iPhone has no mic), and there is no hosted web frontend.
+>>>>>>> origin/main
