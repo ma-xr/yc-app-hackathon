@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 
+import { PressableScale } from '@/components/pressable-scale';
 import { nextBirthdayInDays, type ContactProfile, type Fact } from '@/components/contacts/data';
 import { inDays, monthDay, shortDate } from '@/components/contacts/profile/format';
 import { C, F, S, T } from '@/theme/tokens';
@@ -134,16 +135,17 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 
 function ContactRow({ label, value, url }: { label: string; value: string; url: string }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="link"
       accessibilityLabel={`${label === 'Phone' ? 'Call' : 'Email'} ${value}`}
       onPress={() => Linking.openURL(url)}
-      style={({ pressed }) => [styles.group, styles.contactRow, pressed && { opacity: 0.6 }]}>
+      scaleTo={0.98}
+      style={[styles.group, styles.contactRow]}>
       <Text style={styles.label}>{label}</Text>
       <Text style={[styles.value, styles.link]} numberOfLines={1}>
         {value}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 

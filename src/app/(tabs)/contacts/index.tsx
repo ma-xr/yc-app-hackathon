@@ -1,6 +1,6 @@
 import { useRouter, type Href } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useContactsSync } from '@/lib/contacts-source';
@@ -10,6 +10,8 @@ import { FocusRow } from '@/components/contacts/list/focus-row';
 import { metricFor, syncedLabel, type ContactSort } from '@/components/contacts/list/sort';
 import { SortPill, SortSheet } from '@/components/contacts/list/sort-sheet';
 import { Icon } from '@/components/icon';
+import { SkeletonCard } from '@/components/motion';
+import { IconButton } from '@/components/pressable-scale';
 import { Button } from '@/components/ui';
 import { useNow } from '@/data/hooks';
 import { C, F, S, T } from '@/theme/tokens';
@@ -95,9 +97,9 @@ export default function ContactsScreen() {
               style={styles.searchInput}
             />
             {search ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={10} onPress={() => setSearch('')}>
+              <IconButton accessibilityLabel="Clear search" size={24} onPress={() => setSearch('')}>
                 <Icon name="x" size={14} color={C.mutedIcon} strokeWidth={2.2} />
-              </Pressable>
+              </IconButton>
             ) : null}
           </View>
           {query || !overview ? null : <FocusRow people={overview.focus} onOpen={open} />}
@@ -120,7 +122,11 @@ export default function ContactsScreen() {
         ListHeaderComponent={header}
         ListEmptyComponent={
           loading ? (
-            <ActivityIndicator color={C.accent} style={{ marginTop: 40 }} />
+            <View style={styles.loading}>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </View>
           ) : empty ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>Connect your contacts</Text>
@@ -166,6 +172,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   searchInput: { flex: 1, height: 40, fontFamily: F.regular, fontSize: 15, color: C.ink, outlineStyle: 'none' } as object,
+  loading: { paddingHorizontal: S.screenX, paddingTop: 16, gap: 12 },
   sortBar: { paddingHorizontal: S.screenX, paddingTop: 4 },
   empty: { paddingHorizontal: 32, paddingTop: 72, gap: 10, alignItems: 'center' },
   emptyTitle: { fontFamily: F.display, fontSize: 24, lineHeight: 30, color: C.ink, textAlign: 'center' },
