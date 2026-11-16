@@ -11,7 +11,7 @@ export async function requireUser(ctx: QueryCtx | MutationCtx): Promise<Id<"user
   return userId;
 }
 
-type Owned = TableNames & ("people" | "conversations" | "items" | "topics" | "followups" | "reflections");
+type Owned = TableNames & ("people" | "conversations" | "items" | "topics" | "followups" | "reflections" | "traits" | "days");
 
 export async function requireOwned<T extends Owned>(
   ctx: QueryCtx | MutationCtx,
