@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { ActivitySection } from '@/components/insights/activity-section';
 import { useDay, useInsightActions, useProfile, useToday, useWeek } from '@/components/insights/data';
@@ -11,8 +11,10 @@ import { SummaryCard } from '@/components/insights/summary-card';
 import { Timeline } from '@/components/insights/timeline';
 import { WeekStrip } from '@/components/insights/week-strip';
 import { YouView } from '@/components/insights/you-view';
+import { Enter, SkeletonCard } from '@/components/motion';
+import { PressableScale } from '@/components/pressable-scale';
 import { EmptyCard, H1, Screen } from '@/components/ui';
-import { C, F } from '@/theme/tokens';
+import { C, F, S } from '@/theme/tokens';
 
 type View_ = 'day' | 'you';
 
@@ -40,14 +42,15 @@ export default function Insights() {
           ).map(([key, label]) => {
             const on = view === key;
             return (
-              <Pressable
+              <PressableScale
                 key={key}
+                haptic="selection"
                 accessibilityRole="tab"
                 accessibilityState={{ selected: on }}
                 onPress={() => setView(key)}
                 style={[styles.segItem, on && styles.segOn]}>
                 <Text style={[styles.segText, on && { color: C.onAccent }]}>{label}</Text>
-              </Pressable>
+              </PressableScale>
             );
           })}
         </View>
@@ -65,15 +68,16 @@ function dayTitle(date: string, today: string) {
 }
 
 function DayView({ today }: { today: string }) {
-  const [selected, setSelected] = useState(today);
+  const [picked, setPicked] = useState<string | null>(null);
+  const selected = picked ?? today;
   const week = useWeek(today);
   const day = useDay(selected);
 
   return (
     <>
-      {week ? <WeekStrip days={week} selected={selected} today={today} onSelect={setSelected} /> : null}
+      {week ? <WeekStrip days={week} selected={selected} today={today} onSelect={(date) => setPicked(date === today ? null : date)} /> : null}
       {day === undefined ? (
-        <ActivityIndicator color={C.accent} />
+        <SkeletonCard lines={3} />
       ) : day === null ? (
         <EmptyCard>
           {selected === today
@@ -82,11 +86,21 @@ function DayView({ today }: { today: string }) {
         </EmptyCard>
       ) : (
         <>
-          <SummaryCard day={day} title={dayTitle(day.date, today)} />
-          <MoodSection day={day} />
-          <PeopleSection day={day} />
-          <ActivitySection day={day} />
-          <Timeline day={day} />
+          <Enter index={0}>
+            <SummaryCard day={day} title={dayTitle(day.date, today)} />
+          </Enter>
+          <Enter index={1}>
+            <MoodSection day={day} />
+          </Enter>
+          <Enter index={2}>
+            <PeopleSection day={day} />
+          </Enter>
+          <Enter index={3} style={{ gap: S.gap }}>
+            <ActivitySection day={day} />
+          </Enter>
+          <Enter index={4}>
+            <Timeline day={day} />
+          </Enter>
         </>
       )}
     </>
@@ -95,7 +109,7 @@ function DayView({ today }: { today: string }) {
 
 function YouTab({ today }: { today: string }) {
   const profile = useProfile(today);
-  if (profile === undefined) return <ActivityIndicator color={C.accent} />;
+  if (profile === undefined) return <SkeletonCard lines={3} />;
   return <YouView profile={profile} />;
 }
 

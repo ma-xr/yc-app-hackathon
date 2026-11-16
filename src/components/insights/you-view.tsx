@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { Fragment } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Chevron, FactRow, formatMins } from '@/components/insights/parts';
 import { useEvidenceSheet } from '@/components/insights/sheet-context';
 import type { Profile, Trait } from '@/components/insights/types';
+import { Enter } from '@/components/motion';
+import { PressableScale } from '@/components/pressable-scale';
 import { Avatar, Button, Card, Divider, SectionLabel } from '@/components/ui';
 import { C, F, T } from '@/theme/tokens';
 
@@ -44,7 +45,7 @@ export function YouView({ profile }: { profile: Profile }) {
           <SectionLabel>What lifts you</SectionLabel>
           <View>
             {profile.lifts.map((l, i) => (
-              <Fragment key={l.kind + ':' + l.key}>
+              <Enter key={l.kind + ':' + l.key} index={i}>
                 {i > 0 ? <Divider /> : null}
                 <FactRow
                   title={l.label}
@@ -55,9 +56,9 @@ export function YouView({ profile }: { profile: Profile }) {
                     </Text>
                   }
                   accessibilityLabel={[l.label, formatDelta(l.delta), l.note].join(', ')}
-                  onPress={() => open({ title: l.label + ' · ' + formatDelta(l.delta), sub: l.note, conversationIds: [] })}
+                  onPress={() => open({ title: l.label + ' · ' + formatDelta(l.delta), sub: l.note, conversationIds: [], personId: l.personId })}
                 />
-              </Fragment>
+              </Enter>
             ))}
           </View>
         </Card>
@@ -81,13 +82,13 @@ export function YouView({ profile }: { profile: Profile }) {
             {profile.orbit.map((o, i) => {
               const meta = [formatMins(o.minutes) + ' this week', o.about.join(', ')].filter(Boolean).join(' · ');
               return (
-                <Fragment key={o._id}>
+                <Enter key={o._id} index={i}>
                   {i > 0 ? <Divider /> : null}
-                  <Pressable
+                  <PressableScale
                     accessibilityRole="button"
                     accessibilityLabel={['Open ' + o.name, o.roleLabel, meta].filter(Boolean).join(', ')}
                     onPress={() => router.push({ pathname: '/person/[id]', params: { id: o._id } })}
-                    style={({ pressed }) => [styles.orbitRow, pressed && { opacity: 0.7 }]}>
+                    style={styles.orbitRow}>
                     <Avatar name={o.name} size={40} />
                     <View style={{ flex: 1, gap: 2 }}>
                       <View style={styles.nameRow}>
@@ -107,8 +108,8 @@ export function YouView({ profile }: { profile: Profile }) {
                       </Text>
                     </View>
                     <Chevron />
-                  </Pressable>
-                </Fragment>
+                  </PressableScale>
+                </Enter>
               );
             })}
           </View>
@@ -128,7 +129,7 @@ function TraitCard({ title, traits }: { title: string; traits: Trait[] }) {
           {traits.map((t, i) => {
             const source = t.source === 'told' ? 'You told Jesse' : t.evidenceCount + ' conversations';
             return (
-              <Fragment key={t._id}>
+              <Enter key={t._id} index={i}>
                 {i > 0 ? <Divider /> : null}
                 <FactRow
                   title={t.label}
@@ -137,7 +138,7 @@ function TraitCard({ title, traits }: { title: string; traits: Trait[] }) {
                   accessibilityLabel={[t.label, source, t.reason].filter(Boolean).join(', ')}
                   onPress={() => open({ title: t.label, sub: t.reason, conversationIds: t.evidence, traitId: t._id })}
                 />
-              </Fragment>
+              </Enter>
             );
           })}
         </View>

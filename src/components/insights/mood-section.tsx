@@ -6,6 +6,7 @@ import { time } from '@/components/format';
 import { Desc, FactRow, MoodDot, SectionHead, moodColor } from '@/components/insights/parts';
 import { useEvidenceSheet } from '@/components/insights/sheet-context';
 import type { Day } from '@/components/insights/types';
+import { Enter } from '@/components/motion';
 import { Card, Divider } from '@/components/ui';
 import { C, T } from '@/theme/tokens';
 
@@ -61,7 +62,7 @@ export function MoodSection({ day }: { day: Day }) {
       <Desc>{mood.desc}</Desc>
       <MoodCurve curve={mood.curve} />
       {mood.facts.map((f, i) => (
-        <View key={`${f.conversationId}-${f.kind}`}>
+        <Enter key={`${f.conversationId}-${f.kind}`} index={i}>
           {i ? <Divider /> : null}
           <FactRow
             lead={<MoodDot mood={f.mood} />}
@@ -70,7 +71,7 @@ export function MoodSection({ day }: { day: Day }) {
             reason={f.reason}
             onPress={() => open({ title: f.title, sub: f.reason, conversationIds: [f.conversationId] })}
           />
-        </View>
+        </Enter>
       ))}
     </Card>
   );

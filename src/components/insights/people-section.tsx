@@ -5,6 +5,7 @@ import { firstName } from '@/components/format';
 import { Chevron, Desc, FactRow, SectionHead, SplitBar, formatMins } from '@/components/insights/parts';
 import { useEvidenceSheet } from '@/components/insights/sheet-context';
 import type { Day } from '@/components/insights/types';
+import { Enter } from '@/components/motion';
 import { Avatar, Card, Divider } from '@/components/ui';
 
 export function PeopleSection({ day }: { day: Day }) {
@@ -25,7 +26,7 @@ export function PeopleSection({ day }: { day: Day }) {
       {people.facts.map((f, i) => {
         const name = f.person?.name ?? 'Someone';
         return (
-          <View key={f.personId}>
+          <Enter key={f.personId} index={i}>
             {i ? <Divider /> : null}
             <FactRow
               lead={<Avatar name={name} size={28} />}
@@ -37,7 +38,7 @@ export function PeopleSection({ day }: { day: Day }) {
                 open({ title: name, sub: f.reason, conversationIds: f.conversationIds, personId: f.personId })
               }
             />
-          </View>
+          </Enter>
         );
       })}
       {nudge ? (

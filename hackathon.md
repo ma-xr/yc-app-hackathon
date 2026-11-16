@@ -429,3 +429,9 @@ Reduce Motion is respected and the orb's accessibility labels are kept
 - `Screen` takes `edges` (top by default; modals pass `['top', 'bottom']` to clear the home indicator), `keyboard` (KeyboardAvoidingView) and `contentStyle`. `Button` springs on press, has `disabled` and gives a light haptic on primary and dark buttons.
 - Picked Reanimated's built-in layout animations and springs instead of Moti or a keyboard library: both are already installed, run on the UI thread, and are in Expo Go. Added expo-haptics with `npx expo install` (in Expo Go). tsc and expo lint are clean.
 
+
+## Insights motion and review fixes (YCAP-27)
+
+- Insights uses the shared motion primitives from #51: PressableScale for rows and toggles, IconButton for the rating thumbs, Enter for the section cards and their rows, SkeletonCard while queries load.
+- Review fixes from #49: Insights follows the clock across midnight (`useNow`) unless you picked another day, person lifts open the contact, and "This is off" no longer claims to save feedback that has no API yet.
+- Verified: tsc and eslint on the Insights files; every view re-rendered on Expo web.
