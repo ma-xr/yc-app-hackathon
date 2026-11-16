@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type QueryCtx } from "./_generated/server";
 import { requireOwned, requireUser } from "./lib/auth";
@@ -9,6 +10,7 @@ const LIFTS_AFTER_DAYS = 5;
 const BASELINE_AFTER_DAYS = 7;
 const MAX_EVIDENCE = 50;
 const DEFAULT_MINUTES = 10;
+const REFRESH_THROTTLE_MS = 2 * MINUTE;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 function requireDate(date: string) {
@@ -204,8 +206,14 @@ export const removeTrait = mutation({
 export const refresh = mutation({
   args: { date: v.string(), timeZone: v.optional(v.string()) },
   handler: async (ctx, { date }) => {
-    await requireUser(ctx);
+    const ownerId = await requireUser(ctx);
     requireDate(date);
+    const row = await ctx.db
+      .query("days")
+      .withIndex("by_ownerId_and_date", (q) => q.eq("ownerId", ownerId).eq("date", date))
+      .unique();
+    if (row !== null && Date.now() - row.computedAt < REFRESH_THROTTLE_MS) return null;
+    await ctx.scheduler.runAfter(0, internal.days.computeDay, { ownerId, date });
     return null;
   },
 });

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { CLOSE_IDLE_MS, continues, GAP_MS, speechWindow } from "./capture";
+import { validateExtraction } from "./extract";
 import schema from "./schema";
 
 vi.mock("@convex-dev/auth/server", async (importOriginal) => ({
@@ -18,16 +19,10 @@ const T0 = Date.UTC(2026, 10, 15, 18, 0);
 
 function fakeExtraction(transcript: string) {
   const name = /thanks, (\w+)/i.exec(transcript)?.[1] ?? null;
-  return {
-    place: null,
-    gist: [],
-    leftOutCount: 0,
-    people: name ? [{ name, archetype: null, facts: [] }] : [],
-    topics: [],
-    items: name
-      ? [{ kind: "you_owe" as const, text: `Send ${name} the deck`, personName: name, topicLabel: null, dueAt: null, importance: 3 }]
-      : [],
-  };
+  return validateExtraction({
+    people: name ? [{ name }] : [],
+    items: name ? [{ kind: "you_owe", text: `Send ${name} the deck`, personName: name, importance: 3 }] : [],
+  });
 }
 
 async function setup() {

@@ -9,6 +9,7 @@ import {
   internalQuery,
   type ActionCtx,
 } from "./_generated/server";
+import { rememberTold } from "./traits";
 
 const DEFAULT_MODEL = "gpt-5-mini";
 const MAX_QUESTION_LENGTH = 500;
@@ -500,6 +501,7 @@ export const ask = action({
     if (!trimmed) {
       throw new ConvexError("Ask Jesse something");
     }
+    const told = rememberTold(ctx, ownerId, trimmed);
     const zone = safeTimeZone(timeZone);
     const now = Date.now();
     const [todayContext, memory, hits] = await Promise.all([
@@ -521,6 +523,7 @@ export const ask = action({
     if (process.env.SUPERMEMORY_API_KEY) {
       await ctx.scheduler.runAfter(0, internal.jesse.syncMemory, { ownerId });
     }
+    await told;
     return reply;
   },
 });
